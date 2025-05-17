@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}{{ person.name }} - Missing Person Details{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <img src="{{ url_for('static', filename=person.photo_path.replace('static/', '')) }}" 
+                     class="card-img-top" alt="{{ person.name }}">
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title">{{ person.name }}</h2>
+                    <div class="status-badge mb-3">
+                        {% if person.is_found %}
+                            <span class="badge bg-success">Found</span>
+                            <small class="text-muted">Found on: {{ person.date_found.strftime('%Y-%m-%d %H:%M') }}</small>
+                        {% else %}
+                            <span class="badge bg-danger">Missing</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><strong>Age:</strong> {{ person.age }}</p>
+                            <p><strong>Gender:</strong> {{ person.gender }}</p>
+                            <p><strong>Last Seen:</strong> {{ person.last_seen.strftime('%Y-%m-%d') }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Location:</strong> {{ person.last_seen_location }}</p>
+                            <p><strong>Reported On:</strong> {{ person.created_at.strftime('%Y-%m-%d') }}</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <h5>Description</h5>
+                        <p>{{ person.description }}</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <h5>Contact Information</h5>
+                        <p><strong>Contact Name:</strong> {{ person.contact_name }}</p>
+                        <p><strong>Phone:</strong> {{ person.contact_phone }}</p>
+                        <p><strong>Email:</strong> {{ person.contact_email }}</p>
+                    </div>
+
+                    <div class="mt-4">
+                        {% if person.is_found %}
+                            <form action="{{ url_for('mark_person_missing', id=person.id) }}" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-warning">
+                                    <i class="fas fa-exclamation-triangle"></i> Mark as Missing Again
+                                </button>
+                            </form>
+                        {% else %}
+                            <form action="{{ url_for('mark_person_found', id=person.id) }}" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-check-circle"></i> Mark as Found
+                                </button>
+                            </form>
+                        {% endif %}
+                        
+                        <a href="{{ url_for('missing_persons') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to List
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.status-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.badge {
+    padding: 8px 12px;
+    font-size: 1rem;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    border-radius: 10px;
+}
+
+.card-img-top {
+    border-radius: 10px 10px 0 0;
+    object-fit: cover;
+    height: 400px;
+}
+
+.btn {
+    padding: 8px 16px;
+    margin-right: 10px;
+}
+
+.btn i {
+    margin-right: 5px;
+}
+</style>
+{% endblock %} 

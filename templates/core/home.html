@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="text-center">Missing Persons System</h2>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-body">
+                                    <h5 class="card-title">Register Missing Person</h5>
+                                    <p class="card-text">Register a new missing person in the system.</p>
+                                    <a href="{% url 'register_missing_person' %}" class="btn btn-primary">Register</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-body">
+                                    <h5 class="card-title">Live Face Detection</h5>
+                                    <p class="card-text">Start live face detection to find matches.</p>
+                                    <button id="startDetection" class="btn btn-success">Start Detection</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">Recent Matches</h5>
+                                    <div id="recentMatches">
+                                        <!-- Recent matches will be loaded here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="videoContainer" class="modal fade" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Live Face Detection</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="video-container">
+                    <video id="video" autoplay playsinline></video>
+                    <canvas id="canvas" style="display: none;"></canvas>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const startButton = document.getElementById('startDetection');
+    const videoModal = new bootstrap.Modal(document.getElementById('videoContainer'));
+    
+    startButton.addEventListener('click', async function() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+            videoModal.show();
+            
+            // Start processing frames
+            processFrame();
+        } catch (err) {
+            console.error('Error accessing camera:', err);
+            alert('Error accessing camera. Please make sure you have granted camera permissions.');
+        }
+    });
+    
+    function processFrame() {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            
+            // Send frame for processing
+            canvas.toBlob(function(blob) {
+                const formData = new FormData();
+                formData.append('video_frame', blob);
+                
+                fetch('/process-video/', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.match_found) {
+                        alert(`Match found! Person: ${data.person_name}, Confidence: ${data.confidence}`);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }, 'image/jpeg');
+        }
+        
+        requestAnimationFrame(processFrame);
+    }
+});
+</script>
+{% endblock %} 

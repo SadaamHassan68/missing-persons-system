@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Found Persons{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center mb-5">
+        <div class="col-lg-8 text-center">
+            <h2 class="display-4 fw-bold mb-3 text-gradient">Found Persons</h2>
+            <p class="lead text-muted">View all persons who have been found and reunited with their families.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        {% for person in found_persons %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm border-0 rounded-4">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <img src="{{ url_for('static', filename=person.photo_path) }}" 
+                             class="img-fluid rounded-circle" 
+                             style="width: 150px; height: 150px; object-fit: cover;"
+                             alt="{{ person.name }}">
+                    </div>
+                    
+                    <h5 class="card-title text-center mb-3">{{ person.name }}</h5>
+                    
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-birthday-cake text-success me-2"></i>
+                                <span>Age: {{ person.age }}</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-venus-mars text-success me-2"></i>
+                                <span>Gender: {{ person.gender }}</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-map-marker-alt text-success me-2"></i>
+                                <span>Last Seen: {{ person.last_seen_location }}</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-calendar text-success me-2"></i>
+                                <span>Missing Since: {{ person.last_seen.strftime('%Y-%m-%d') }}</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <span>Found On: {{ person.date_found.strftime('%Y-%m-%d') }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <h6 class="text-muted mb-2">Description:</h6>
+                        <p class="card-text">{{ person.description }}</p>
+                    </div>
+
+                    <div class="mt-4">
+                        <h6 class="text-muted mb-2">Contact Information:</h6>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-user-tie text-success me-2"></i>
+                            <span>{{ person.contact_name }}</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-phone text-success me-2"></i>
+                            <span>{{ person.contact_phone }}</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-envelope text-success me-2"></i>
+                            <span>{{ person.contact_email }}</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 text-center">
+                        <a href="{{ url_for('missing_person_detail', id=person.id) }}" 
+                           class="btn btn-outline-success">
+                            <i class="fas fa-info-circle me-2"></i>View Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+.text-gradient {
+    background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+}
+</style>
+{% endblock %} 

@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="text-center">Register Missing Person</h2>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="id_name" class="form-label">Name</label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.name.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_age" class="form-label">Age</label>
+                                {{ form.age }}
+                                {% if form.age.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.age.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="id_gender" class="form-label">Gender</label>
+                                {{ form.gender }}
+                                {% if form.gender.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.gender.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_last_seen" class="form-label">Last Seen</label>
+                                {{ form.last_seen }}
+                                {% if form.last_seen.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.last_seen.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="id_height" class="form-label">Height (cm)</label>
+                                {{ form.height }}
+                                {% if form.height.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.height.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_weight" class="form-label">Weight (kg)</label>
+                                {{ form.weight }}
+                                {% if form.weight.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.weight.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_last_seen_location" class="form-label">Last Seen Location</label>
+                            {{ form.last_seen_location }}
+                            {% if form.last_seen_location.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.last_seen_location.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_description" class="form-label">Description</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.description.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_photo" class="form-label">Photo</label>
+                            {{ form.photo }}
+                            {% if form.photo.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.photo.errors }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Please upload a clear photo of the person's face. Maximum file size: 5MB.</div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="id_contact_name" class="form-label">Contact Person Name</label>
+                                {{ form.contact_name }}
+                                {% if form.contact_name.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.contact_name.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_contact_phone" class="form-label">Contact Phone</label>
+                                {{ form.contact_phone }}
+                                {% if form.contact_phone.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.contact_phone.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_contact_email" class="form-label">Contact Email</label>
+                            {{ form.contact_email }}
+                            {% if form.contact_email.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.contact_email.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg">Register Missing Person</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add Bootstrap classes to form fields
+    const inputs = document.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        input.classList.add('form-control');
+    });
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+
+{% block title %}Match Person - Missing Persons System{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">Capture Photo</h4>
+                </div>
+                <div class="card-body">
+                    <div class="camera-container mb-3">
+                        <video id="video" class="w-100" autoplay></video>
+                        <canvas id="canvas" style="display: none;"></canvas>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button id="capture" class="btn btn-primary">
+                            <i class="fas fa-camera"></i> Capture Photo
+                        </button>
+                        <button id="retake" class="btn btn-secondary" style="display: none;">
+                            <i class="fas fa-redo"></i> Retake Photo
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">Matching Results</h4>
+                </div>
+                <div class="card-body">
+                    <div id="results-container">
+                        <div id="no-results" class="text-center py-5">
+                            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">Capture a photo to start matching</p>
+                        </div>
+                        <div id="matches" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.camera-container {
+    position: relative;
+    width: 100%;
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#video {
+    width: 100%;
+    height: 400px;
+    object-fit: cover;
+}
+
+#canvas {
+    width: 100%;
+    height: 400px;
+    object-fit: cover;
+}
+
+.match-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.match-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.match-card .confidence {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.match-card .quality-metrics {
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 0.25rem;
+    border: 1px solid #e9ecef;
+}
+
+.match-card .quality-metrics .metric {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.match-card .quality-metrics .metric:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.match-card .quality-metrics .metric-value {
+    font-weight: 600;
+}
+
+.match-card .quality-metrics .metric-label {
+    color: #495057;
+}
+
+.match-card .quality-metrics .high-quality {
+    color: #28a745;
+}
+
+.match-card .quality-metrics .medium-quality {
+    color: #ffc107;
+}
+
+.match-card .quality-metrics .low-quality {
+    color: #dc3545;
+}
+
+.match-card .match-info {
+    margin-top: 10px;
+}
+
+.match-card img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.status-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.status-found {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-missing {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.loading {
+    text-align: center;
+    padding: 20px;
+}
+
+.loading i {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let video = document.getElementById('video');
+let canvas = document.getElementById('canvas');
+let captureButton = document.getElementById('capture');
+let retakeButton = document.getElementById('retake');
+let matchesContainer = document.getElementById('matches');
+let noResults = document.getElementById('no-results');
+let stream = null;
+
+// Start camera
+async function startCamera() {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+    } catch (err) {
+        console.error("Error accessing camera:", err);
+        alert("Error accessing camera. Please make sure you have granted camera permissions.");
+    }
+}
+
+// Stop camera
+function stopCamera() {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+    }
+}
+
+// Capture photo
+captureButton.addEventListener('click', async () => {
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Draw current video frame to canvas
+    const context = canvas.getContext('2d');
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Get image data
+    const imageData = canvas.toDataURL('image/jpeg');
+    
+    // Show retake button and hide capture button
+    captureButton.style.display = 'none';
+    retakeButton.style.display = 'block';
+    
+    // Show loading state
+    matchesContainer.style.display = 'block';
+    noResults.style.display = 'none';
+    matchesContainer.innerHTML = `
+        <div class="loading">
+            <i class="fas fa-spinner fa-3x text-primary mb-3"></i>
+            <p>Analyzing photo...</p>
+        </div>
+    `;
+    
+    try {
+        // Send image to server for matching
+        const response = await fetch('/match', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `photo=${encodeURIComponent(imageData)}`
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            if (data.matches && data.matches.length > 0) {
+                // Display matches
+                matchesContainer.innerHTML = data.matches.map(match => `
+                    <div class="match-card">
+                        <div class="d-flex align-items-center">
+                            <img src="${match.person.photo_path}" alt="${match.person.name}" class="me-3">
+                            <div>
+                                <div class="d-flex align-items-center mb-1">
+                                    <h5 class="mb-0 me-2">${match.person.name}</h5>
+                                    <span class="status-badge ${match.person.is_found ? 'status-found' : 'status-missing'}">
+                                        ${match.person.is_found ? 'Found' : 'Missing'}
+                                    </span>
+                                </div>
+                                <p class="confidence mb-1">
+                                    <i class="fas fa-percentage"></i> Match Confidence: ${match.confidence.toFixed(2)}%
+                                </p>
+                                <div class="quality-metrics">
+                                    <div class="metric">
+                                        <span class="metric-label">Base Confidence:</span>
+                                        <span class="metric-value ${match.quality_metrics.base_confidence > 90 ? 'high-quality' : match.quality_metrics.base_confidence > 80 ? 'medium-quality' : 'low-quality'}">
+                                            ${match.quality_metrics.base_confidence.toFixed(2)}%
+                                        </span>
+                                    </div>
+                                    <div class="metric">
+                                        <span class="metric-label">Size Quality Boost:</span>
+                                        <span class="metric-value ${match.quality_metrics.size_boost > 7 ? 'high-quality' : match.quality_metrics.size_boost > 4 ? 'medium-quality' : 'low-quality'}">
+                                            +${match.quality_metrics.size_boost.toFixed(2)}%
+                                        </span>
+                                    </div>
+                                    <div class="metric">
+                                        <span class="metric-label">Facial Features Quality:</span>
+                                        <span class="metric-value ${match.quality_metrics.landmarks_quality > 90 ? 'high-quality' : match.quality_metrics.landmarks_quality > 70 ? 'medium-quality' : 'low-quality'}">
+                                            ${match.quality_metrics.landmarks_quality.toFixed(2)}%
+                                        </span>
+                                    </div>
+                                    <div class="metric">
+                                        <span class="metric-label">Face Angle Quality:</span>
+                                        <span class="metric-value ${match.quality_metrics.face_angle_quality > 90 ? 'high-quality' : match.quality_metrics.face_angle_quality > 70 ? 'medium-quality' : 'low-quality'}">
+                                            ${match.quality_metrics.face_angle_quality.toFixed(2)}%
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="match-info">
+                                    <p class="mb-1"><strong>Age:</strong> ${match.person.age}</p>
+                                    <p class="mb-1"><strong>Last Seen:</strong> ${new Date(match.person.last_seen).toLocaleDateString()}</p>
+                                    <p class="mb-0"><strong>Location:</strong> ${match.person.last_seen_location}</p>
+                                    ${match.person.is_found ? `
+                                        <p class="mb-0"><strong>Found On:</strong> ${new Date(match.person.date_found).toLocaleDateString()}</p>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <a href="/missing_person/${match.person.id}" class="btn btn-primary btn-sm me-2">
+                                <i class="fas fa-info-circle"></i> View Details
+                            </a>
+                            ${!match.person.is_found ? `
+                                <form action="/missing_person/${match.person.id}/mark_found" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-success btn-sm">
+                                        <i class="fas fa-check"></i> Mark as Found
+                                    </button>
+                                </form>
+                            ` : `
+                                <form action="/missing_person/${match.person.id}/mark_missing" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-warning btn-sm">
+                                        <i class="fas fa-exclamation-triangle"></i> Mark as Missing Again
+                                    </button>
+                                </form>
+                            `}
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                matchesContainer.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-times-circle fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No matches found</p>
+                    </div>
+                `;
+            }
+        } else {
+            matchesContainer.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="fas fa-exclamation-circle fa-3x text-danger mb-3"></i>
+                    <p class="text-danger">${data.message}</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        matchesContainer.innerHTML = `
+            <div class="text-center py-5">
+                <i class="fas fa-exclamation-circle fa-3x text-danger mb-3"></i>
+                <p class="text-danger">Error processing photo. Please try again.</p>
+            </div>
+        `;
+    }
+});
+
+// Retake photo
+retakeButton.addEventListener('click', () => {
+    // Show capture button and hide retake button
+    captureButton.style.display = 'block';
+    retakeButton.style.display = 'none';
+    
+    // Clear canvas
+    const context = canvas.getContext('2d');
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Reset results display
+    matchesContainer.style.display = 'none';
+    noResults.style.display = 'block';
+});
+
+// Start camera when page loads
+startCamera();
+
+// Clean up camera when leaving page
+window.addEventListener('beforeunload', stopCamera);
+</script>
+{% endblock %} 
