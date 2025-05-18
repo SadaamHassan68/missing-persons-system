@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Missing Persons System
 
 ![Missing Persons System](https://img.shields.io/badge/Status-Active-success)
@@ -7,6 +6,32 @@
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 A comprehensive web-based system for managing and tracking missing persons cases, featuring face recognition technology and advanced search capabilities.
+
+## 📸 Screenshots
+
+### Dashboard
+![Dashboard](screenshots/dashboard.png)
+*Main dashboard showing system status, statistics, and recent cases*
+
+### Missing Persons List
+![Missing Persons](screenshots/missing-persons.png)
+*List of all missing persons with search and filter options*
+
+### Found Persons
+![Found Persons](screenshots/found-persons.png)
+*List of found persons with status updates*
+
+### Face Match
+![Face Match](screenshots/face-match.png)
+*Face recognition interface for matching missing persons*
+
+### Search Interface
+![Search](screenshots/search.png)
+*Advanced search interface with multiple filters*
+
+### Case Details
+![Case Details](screenshots/case-details.png)
+*Detailed view of a missing person case*
 
 ## 🌟 Features
 
@@ -47,7 +72,7 @@ A comprehensive web-based system for managing and tracking missing persons cases
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/missing-persons-system.git
+   git clone https://github.com/SadaamHassan68/missing-persons-system.git
    cd missing-persons-system
    ```
 
@@ -109,10 +134,12 @@ missing-persons-system/
 │   └── templates/
 ├── migrations/
 ├── tests/
-├── .env
+├── screenshots/          # Project screenshots
+├── .env.example
 ├── .gitignore
 ├── config.py
 ├── requirements.txt
+├── README.md
 └── run.py
 ```
 
@@ -155,7 +182,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👥 Authors
 
-- Your Name - Initial work - [YourGitHub](https://github.com/yourusername)
+- Sadaam Hassan - Initial work - [SadaamHassan68](https://github.com/SadaamHassan68)
 
 ## 🙏 Acknowledgments
 
@@ -169,14 +196,10 @@ For support, email support@missingpersonssystem.com or create an issue in the re
 
 ## 🔄 Updates
 
-- Latest update: [Date]
+- Latest update: [Current Date]
 - Version: 1.0.0
 - Changelog: See [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
-Made with ❤️ for a better world 
-=======
-# missing-persons-system
-A comprehensive web-based system for managing and tracking missing persons cases"
->>>>>>> 45c5a3546439fce2d3f9aa27d42044974544d429
+Made with ❤️ for a better world
