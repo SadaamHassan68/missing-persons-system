@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Missing Persons System
 
 ![Missing Persons System](https://img.shields.io/badge/Status-Active-success)
@@ -175,3 +176,7 @@ For support, email support@missingpersonssystem.com or create an issue in the re
 ---
 
 Made with ❤️ for a better world 
+=======
+# missing-persons-system
+A comprehensive web-based system for managing and tracking missing persons cases"
+>>>>>>> 45c5a3546439fce2d3f9aa27d42044974544d429
