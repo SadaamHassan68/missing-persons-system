@@ -3,68 +3,80 @@
 {% block title %}{{ person.name }} - Missing Person Details{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container py-5">
     <div class="row">
         <div class="col-md-4">
-            <div class="card">
-                <img src="{{ url_for('static', filename=person.photo_path.replace('static/', '')) }}" 
+            <div class="card shadow-sm">
+                {% if person.primary_photo %}
+                <img src="{{ url_for('static', filename='uploads/' + person.primary_photo.photo_path) }}" 
                      class="card-img-top" alt="{{ person.name }}">
+                {% else %}
+                <div class="card-img-top bg-light text-center py-5">
+                    <i class="fas fa-user fa-5x text-muted"></i>
+                </div>
+                {% endif %}
+                
+                {% if person.photos|length > 1 %}
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">Additional Photos</h6>
+                    <div class="row">
+                        {% for photo in person.photos %}
+                        {% if not photo.is_primary %}
+                        <div class="col-4 mb-2">
+                            <img src="{{ url_for('static', filename='uploads/' + photo.photo_path) }}" 
+                                 class="img-fluid rounded" alt="Additional photo">
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
+        
         <div class="col-md-8">
-            <div class="card">
+            <div class="card shadow-sm">
                 <div class="card-body">
-                    <h2 class="card-title">{{ person.name }}</h2>
-                    <div class="status-badge mb-3">
-                        {% if person.is_found %}
-                            <span class="badge bg-success">Found</span>
-                            <small class="text-muted">Found on: {{ person.date_found.strftime('%Y-%m-%d %H:%M') }}</small>
-                        {% else %}
-                            <span class="badge bg-danger">Missing</span>
-                        {% endif %}
-                    </div>
+                    <h2 class="card-title mb-4">{{ person.name }}</h2>
                     
-                    <div class="row mb-3">
+                    <div class="row mb-4">
                         <div class="col-md-6">
+                            <h5 class="text-muted mb-3">Personal Information</h5>
                             <p><strong>Age:</strong> {{ person.age }}</p>
                             <p><strong>Gender:</strong> {{ person.gender }}</p>
-                            <p><strong>Last Seen:</strong> {{ person.last_seen.strftime('%Y-%m-%d') }}</p>
+                            <p><strong>Last Seen:</strong> {{ person.last_seen.strftime('%Y-%m-%d %H:%M') }}</p>
+                            <p><strong>Location:</strong> {{ person.last_seen_location }}</p>
                         </div>
                         <div class="col-md-6">
-                            <p><strong>Location:</strong> {{ person.last_seen_location }}</p>
-                            <p><strong>Reported On:</strong> {{ person.created_at.strftime('%Y-%m-%d') }}</p>
+                            <h5 class="text-muted mb-3">Contact Information</h5>
+                            <p><strong>Contact Name:</strong> {{ person.contact_name }}</p>
+                            <p><strong>Phone:</strong> {{ person.contact_phone }}</p>
+                            <p><strong>Email:</strong> {{ person.contact_email }}</p>
                         </div>
                     </div>
-
-                    <div class="mb-3">
-                        <h5>Description</h5>
+                    
+                    <div class="mb-4">
+                        <h5 class="text-muted mb-3">Description</h5>
                         <p>{{ person.description }}</p>
                     </div>
-
-                    <div class="mb-3">
-                        <h5>Contact Information</h5>
-                        <p><strong>Contact Name:</strong> {{ person.contact_name }}</p>
-                        <p><strong>Phone:</strong> {{ person.contact_phone }}</p>
-                        <p><strong>Email:</strong> {{ person.contact_email }}</p>
-                    </div>
-
-                    <div class="mt-4">
-                        {% if person.is_found %}
-                            <form action="{{ url_for('mark_person_missing', id=person.id) }}" method="POST" class="d-inline">
-                                <button type="submit" class="btn btn-warning">
-                                    <i class="fas fa-exclamation-triangle"></i> Mark as Missing Again
-                                </button>
-                            </form>
+                    
+                    <div class="d-flex gap-2">
+                        {% if not person.is_found %}
+                        <form action="{{ url_for('mark_person_found', id=person.id) }}" method="POST" class="d-inline">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check me-2"></i>Mark as Found
+                            </button>
+                        </form>
                         {% else %}
-                            <form action="{{ url_for('mark_person_found', id=person.id) }}" method="POST" class="d-inline">
-                                <button type="submit" class="btn btn-success">
-                                    <i class="fas fa-check-circle"></i> Mark as Found
-                                </button>
-                            </form>
+                        <form action="{{ url_for('mark_person_missing', id=person.id) }}" method="POST" class="d-inline">
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Mark as Missing Again
+                            </button>
+                        </form>
                         {% endif %}
                         
-                        <a href="{{ url_for('missing_persons') }}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left"></i> Back to List
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to List
                         </a>
                     </div>
                 </div>
@@ -72,38 +84,4 @@
         </div>
     </div>
 </div>
-
-<style>
-.status-badge {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.badge {
-    padding: 8px 12px;
-    font-size: 1rem;
-}
-
-.card {
-    border: none;
-    box-shadow: 0 0 20px rgba(0,0,0,0.1);
-    border-radius: 10px;
-}
-
-.card-img-top {
-    border-radius: 10px 10px 0 0;
-    object-fit: cover;
-    height: 400px;
-}
-
-.btn {
-    padding: 8px 16px;
-    margin-right: 10px;
-}
-
-.btn i {
-    margin-right: 5px;
-}
-</style>
 {% endblock %} 

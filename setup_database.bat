@@ -1,27 +1,33 @@
 @echo off
-echo Setting up Missing Persons Database...
+echo Setting up Missing Persons System database...
 
-REM Check if XAMPP MySQL is running
-netstat -an | find "3306" > nul
-if errorlevel 1 (
-    echo MySQL is not running. Please start XAMPP MySQL service first.
+REM Check if MySQL is installed
+where mysql >nul 2>nul
+if %errorlevel% neq 0 (
+    echo MySQL is not installed or not in PATH
+    echo Please install MySQL and try again
     pause
-    exit /b
+    exit /b 1
 )
 
-REM Import the SQL file
-echo Importing database schema...
-"C:\xampp\mysql\bin\mysql" -u root < database_setup.sql
+REM Prompt for MySQL root password
+set /p MYSQL_PWD=Enter MySQL root password: 
 
-if errorlevel 1 (
-    echo Error importing database schema.
+REM Create database and tables
+echo Creating database and tables...
+mysql -u root -p%MYSQL_PWD% < database_setup.sql
+
+if %errorlevel% neq 0 (
+    echo Error setting up database
     pause
-    exit /b
+    exit /b 1
 )
 
 echo Database setup completed successfully!
 echo.
-echo You can now run the Django migrations:
-echo python manage.py migrate
+echo Default admin credentials:
+echo Email: admin@example.com
+echo Password: admin123
 echo.
+echo Please change these credentials after first login
 pause 

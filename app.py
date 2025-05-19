@@ -11,6 +11,8 @@ import base64
 from io import BytesIO
 from PIL import Image
 from functools import wraps
+import time
+import json
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key'
@@ -226,22 +228,26 @@ def index():
                          active_cases=active_cases,
                          ai_matches=ai_matches)
 
-@app.route('/missing_person/new', methods=['GET', 'POST'])
+@app.route('/register_person', methods=['GET', 'POST'])
 @login_required
-def register_missing_person():
+def register_person():
     if request.method == 'POST':
         try:
             # Get form data
             name = request.form['name']
             age = int(request.form['age'])
             gender = request.form['gender']
-            last_seen = datetime.strptime(request.form['last_seen'], '%Y-%m-%d')
+            last_seen = datetime.strptime(request.form['last_seen'], '%Y-%m-%dT%H:%M')
             last_seen_location = request.form['last_seen_location']
             description = request.form['description']
             contact_name = request.form['contact_name']
             contact_phone = request.form['contact_phone']
             contact_email = request.form['contact_email']
-
+            
+            # Get photo data
+            photo_data = request.form['photo_data']
+            photos = json.loads(photo_data)  # Parse the JSON string of photos
+            
             # Create new missing person record
             missing_person = MissingPerson(
                 name=name,
@@ -252,60 +258,48 @@ def register_missing_person():
                 description=description,
                 contact_name=contact_name,
                 contact_phone=contact_phone,
-                contact_email=contact_email
+                contact_email=contact_email,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
             )
+            
             db.session.add(missing_person)
             db.session.flush()  # Get the ID without committing
-
-            # Handle multiple photo uploads
-            photos = request.files.getlist('photos')
-            if not photos or photos[0].filename == '':
-                flash('No photos uploaded')
-                return redirect(request.url)
-
-            valid_photos = 0
-            for i, photo in enumerate(photos):
-                if photo and allowed_file(photo.filename):
-                    filename = secure_filename(f"{name}_{i}_{photo.filename}")
-                    photo_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                    photo.save(photo_path)
-
-                    # Process image for face encoding with optimized parameters
-                    image = face_recognition.load_image_file(photo_path)
-                    face_encodings = face_recognition.face_encodings(
-                        image,
-                        num_jitters=5,  # Reduced jitters for faster processing
-                        model="small"   # Using small model for faster processing
+            
+            # Process each photo
+            for i, photo_data in enumerate(photos):
+                # Save photo
+                photo_filename = f"person_{missing_person.id}_{i}_{int(time.time())}.jpg"
+                photo_path = os.path.join(app.config['UPLOAD_FOLDER'], photo_filename)
+                
+                # Convert base64 to image and save
+                photo_data = photo_data.split(',')[1]
+                photo_bytes = base64.b64decode(photo_data)
+                with open(photo_path, 'wb') as f:
+                    f.write(photo_bytes)
+                
+                # Process face encoding
+                face_encoding = process_face_encoding(photo_path)
+                if face_encoding is not None:
+                    # Create photo record
+                    person_photo = PersonPhoto(
+                        photo_path=photo_filename,
+                        face_encoding=face_encoding,
+                        is_primary=(i == 0),  # First photo is primary
+                        missing_person_id=missing_person.id
                     )
-                    
-                    if face_encodings:
-                        face_encoding = face_encodings[0].tobytes()
-                        
-                        # Create photo record
-                        person_photo = PersonPhoto(
-                            photo_path=photo_path,
-                            face_encoding=face_encoding,
-                            is_primary=(i == 0),  # First photo is primary
-                            missing_person_id=missing_person.id
-                        )
-                        db.session.add(person_photo)
-                        valid_photos += 1
-
-            if valid_photos > 0:
-                db.session.commit()
-                flash(f'Missing person registered successfully with {valid_photos} photos')
-                return redirect(url_for('index'))
-            else:
-                db.session.rollback()
-                flash('No valid photos with faces detected')
-                return redirect(request.url)
-
+                    db.session.add(person_photo)
+            
+            db.session.commit()
+            flash('Missing person registered successfully!', 'success')
+            return redirect(url_for('index'))
+            
         except Exception as e:
             db.session.rollback()
-            flash(f'Error: {str(e)}')
-            return redirect(request.url)
-
-    return render_template('register_missing_person.html')
+            flash(f'Error registering missing person: {str(e)}', 'error')
+            return redirect(url_for('register_person'))
+    
+    return render_template('register_person.html')
 
 @app.route('/missing_person/<int:id>')
 def missing_person_detail(id):
@@ -320,10 +314,8 @@ def match_person():
             # Get base64 image data
             photo_data = request.form.get('photo')
             if not photo_data:
-                return jsonify({
-                    'success': False,
-                    'message': 'No photo captured'
-                })
+                flash('No photo captured', 'error')
+                return redirect(url_for('match_person'))
             
             # Convert base64 to image file
             photo_data = photo_data.split(',')[1]
@@ -338,28 +330,26 @@ def match_person():
             # Process uploaded image with optimized parameters
             unknown_image = face_recognition.load_image_file(photo_path)
             
-            # Use HOG face detection for speed
-            face_locations = face_recognition.face_locations(unknown_image, model="hog")
+            # Use CNN face detection for better accuracy
+            face_locations = face_recognition.face_locations(unknown_image, model="cnn")
             
             if not face_locations:
-                return jsonify({
-                    'success': False,
-                    'message': 'No face detected in the captured photo. Please try again with a clearer photo.'
-                })
+                os.remove(photo_path)
+                flash('No face detected in the captured photo. Please try again with a clearer photo.', 'error')
+                return redirect(url_for('match_person'))
 
             # Get face encodings with optimized parameters
             unknown_encodings = face_recognition.face_encodings(
                 unknown_image,
                 face_locations,
-                num_jitters=3,  # Increased jitters for better accuracy
-                model="small"   # Using small model for speed
+                num_jitters=10,  # Increased jitters for better accuracy
+                model="large"    # Using large model for better accuracy
             )
             
             if not unknown_encodings:
-                return jsonify({
-                    'success': False,
-                    'message': 'Could not process face features. Please try again with a clearer photo.'
-                })
+                os.remove(photo_path)
+                flash('Could not process face features. Please try again with a clearer photo.', 'error')
+                return redirect(url_for('match_person'))
             
             # Get all missing persons
             missing_persons = MissingPerson.query.filter_by(is_found=False).all()
@@ -382,19 +372,19 @@ def match_person():
                     
                     # Compare with all detected faces
                     for unknown_encoding in unknown_encodings:
-                        # Single comparison for speed
+                        # Calculate face distance
                         distance = face_recognition.face_distance([known_encoding], unknown_encoding)[0]
                         base_confidence = (1 - distance) * 100
 
-                        # Quick initial check with higher threshold
-                        if base_confidence > 75:  # Increased from 60 to 75
+                        # Enhanced quality checks
+                        if base_confidence > 70:  # Lower initial threshold to catch more potential matches
                             # Calculate face size ratio
                             face_height = face_locations[0][2] - face_locations[0][0]
                             face_width = face_locations[0][1] - face_locations[0][3]
                             face_size_ratio = (face_height * face_width) / (unknown_image.shape[0] * unknown_image.shape[1])
                             
                             # Enhanced size boost calculation
-                            size_confidence_boost = min(face_size_ratio * 300, 20)  # Increased multiplier and max boost
+                            size_confidence_boost = min(face_size_ratio * 400, 25)  # Increased multiplier and max boost
                             
                             # Calculate facial features quality
                             face_landmarks = face_recognition.face_landmarks(unknown_image, face_locations)
@@ -422,28 +412,21 @@ def match_person():
                             
                             # Calculate final confidence with enhanced factors
                             final_confidence = base_confidence + size_confidence_boost
-                            final_confidence *= (0.8 + 0.2 * landmarks_quality)  # Increased base quality factor
-                            final_confidence *= (0.8 + 0.2 * face_angle_quality)  # Increased base quality factor
+                            final_confidence *= (0.85 + 0.15 * landmarks_quality)  # Increased base quality factor
+                            final_confidence *= (0.85 + 0.15 * face_angle_quality)  # Increased base quality factor
                             
                             # Additional boost for high-quality matches
-                            if base_confidence > 85:  # Increased from 80 to 85
-                                final_confidence *= 1.15  # Increased boost from 10% to 15%
+                            if base_confidence > 85:
+                                final_confidence *= 1.2  # Increased boost for high-quality matches
+                            
+                            # Additional boost for perfect landmarks
+                            if landmarks_quality > 0.9:
+                                final_confidence *= 1.1  # 10% boost for nearly perfect landmarks
 
                             if final_confidence > best_confidence:
                                 best_confidence = final_confidence
                                 best_match = {
-                                    'person': {
-                                        'id': person.id,
-                                        'name': person.name,
-                                        'age': person.age,
-                                        'last_seen': person.last_seen.isoformat(),
-                                        'last_seen_location': person.last_seen_location,
-                                        'contact_name': person.contact_name,
-                                        'contact_phone': person.contact_phone,
-                                        'photo_path': photo.photo_path,
-                                        'is_found': person.is_found,
-                                        'date_found': person.date_found.isoformat() if person.date_found else None
-                                    },
+                                    'person': person,
                                     'confidence': final_confidence,
                                     'quality_metrics': {
                                         'base_confidence': base_confidence,
@@ -453,30 +436,25 @@ def match_person():
                                     }
                                 }
 
-                # Higher threshold for matches (90%)
-                if best_match and best_confidence > 90:
+                # Higher threshold for matches (85%)
+                if best_match and best_confidence > 85:
                     matches.append(best_match)
+            
+            # Clean up temporary file
+            os.remove(photo_path)
             
             if matches:
                 # Sort matches by confidence
                 matches.sort(key=lambda x: x['confidence'], reverse=True)
-                return jsonify({
-                    'success': True,
-                    'matches': matches
-                })
+                return render_template('match_result.html', matches=matches)
             else:
-                return jsonify({
-                    'success': True,
-                    'matches': [],
-                    'message': 'No matches found. Please try again with a clearer photo.'
-                })
+                flash('No matches found. Please try again with a clearer photo.', 'info')
+                return redirect(url_for('match_person'))
                 
         except Exception as e:
             print(f"Error during face recognition: {str(e)}")
-            return jsonify({
-                'success': False,
-                'message': f'Error during face recognition: {str(e)}'
-            })
+            flash(f'Error during face recognition: {str(e)}', 'error')
+            return redirect(url_for('match_person'))
     
     return render_template('match.html')
 
@@ -594,6 +572,100 @@ def mark_person_missing(id):
     except Exception as e:
         flash(f'Error marking person as missing: {str(e)}', 'error')
     return redirect(url_for('missing_person_detail', id=id))
+
+def process_face_encoding(image_path):
+    try:
+        # Load the image file
+        image = face_recognition.load_image_file(image_path)
+        
+        # Find all face locations in the image with more accurate model
+        face_locations = face_recognition.face_locations(image, model="cnn")
+        
+        if not face_locations:
+            print(f"No face detected in {image_path}")
+            return None
+            
+        # Get face encodings with more jitters for better accuracy
+        face_encodings = face_recognition.face_encodings(
+            image, 
+            face_locations,
+            num_jitters=10,  # Increased from 1 to 10 for better accuracy
+            model="large"    # Using large model for better accuracy
+        )
+        
+        if not face_encodings:
+            print(f"Could not encode face in {image_path}")
+            return None
+            
+        # Return the first face encoding (assuming one face per photo)
+        return face_encodings[0].tobytes()
+        
+    except Exception as e:
+        print(f"Error processing face encoding: {str(e)}")
+        return None
+
+@app.route('/find_person', methods=['GET', 'POST'])
+def find_person():
+    if request.method == 'POST':
+        if 'photo' not in request.files:
+            flash('No photo uploaded', 'error')
+            return redirect(request.url)
+            
+        photo = request.files['photo']
+        if photo.filename == '':
+            flash('No photo selected', 'error')
+            return redirect(request.url)
+            
+        if photo:
+            try:
+                # Save the uploaded photo temporarily
+                temp_path = os.path.join(app.config['UPLOAD_FOLDER'], 'temp_upload.jpg')
+                photo.save(temp_path)
+                
+                # Process the uploaded photo
+                uploaded_encoding = process_face_encoding(temp_path)
+                
+                if uploaded_encoding is None:
+                    flash('No face detected in the uploaded photo. Please try again with a clearer photo.', 'error')
+                    os.remove(temp_path)
+                    return redirect(request.url)
+                
+                # Convert bytes back to numpy array
+                uploaded_encoding = np.frombuffer(uploaded_encoding, dtype=np.float64)
+                
+                # Get all missing persons
+                missing_persons = MissingPerson.query.filter_by(is_found=False).all()
+                matches = []
+                
+                for person in missing_persons:
+                    for photo in person.photos:
+                        if photo.face_encoding:
+                            # Convert stored encoding to numpy array
+                            stored_encoding = np.frombuffer(photo.face_encoding, dtype=np.float64)
+                            
+                            # Compare faces with a more lenient tolerance
+                            face_distance = face_recognition.face_distance([stored_encoding], uploaded_encoding)[0]
+                            
+                            # Lower threshold for matching (0.6 is more lenient than default 0.6)
+                            if face_distance < 0.6:
+                                matches.append(person)
+                                break  # Break after first match for this person
+                
+                # Clean up temporary file
+                os.remove(temp_path)
+                
+                if matches:
+                    return render_template('find_person.html', matches=matches)
+                else:
+                    flash('No matches found. Please try again with a different angle or better lighting.', 'error')
+                    return redirect(request.url)
+                    
+            except Exception as e:
+                print(f"Error in find_person: {str(e)}")
+                flash('An error occurred while processing the photo. Please try again.', 'error')
+                return redirect(request.url)
+                
+    return render_template('find_person.html')
 
 if __name__ == '__main__':
     with app.app_context():

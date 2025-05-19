@@ -1,46 +1,46 @@
 @echo off
-echo Starting Missing Persons Flask Application...
-
-REM Check if XAMPP MySQL is running
-netstat -an | find "3306" > nul
-if errorlevel 1 (
-    echo MySQL is not running. Please start XAMPP MySQL service first.
-    pause
-    exit /b
-)
+echo Starting Missing Persons System...
 
 REM Check if Python is installed
-python --version > nul 2>&1
-if errorlevel 1 (
-    echo Python is not installed or not in PATH. Please install Python first.
+where python >nul 2>nul
+if %errorlevel% neq 0 (
+    echo Python is not installed or not in PATH
+    echo Please install Python and try again
     pause
-    exit /b
+    exit /b 1
 )
 
-REM Check if virtual environment exists, if not create it
-if not exist "venv" (
+REM Check if virtual environment exists
+if not exist venv (
     echo Creating virtual environment...
     python -m venv venv
+    if %errorlevel% neq 0 (
+        echo Error creating virtual environment
+        pause
+        exit /b 1
+    )
 )
 
 REM Activate virtual environment
-echo Activating virtual environment...
 call venv\Scripts\activate
 
-REM Install requirements if not already installed
-echo Installing requirements...
-pip install -r requirements.txt
+REM Install requirements if needed
+if not exist venv\Lib\site-packages\flask (
+    echo Installing requirements...
+    pip install -r requirements.txt
+    if %errorlevel% neq 0 (
+        echo Error installing requirements
+        pause
+        exit /b 1
+    )
+)
 
-REM Run database setup
-echo Setting up database...
-call setup_database.bat
+REM Create uploads directory if it doesn't exist
+if not exist static\uploads mkdir static\uploads
 
-REM Start the Flask application
+REM Run Flask application
 echo Starting Flask application...
-echo.
-echo The application will be available at: http://127.0.0.1:5000/
-echo Press Ctrl+C to stop the server
-echo.
 python app.py
 
-pause 
+REM Deactivate virtual environment
+call venv\Scripts\deactivate 

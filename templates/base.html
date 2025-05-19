@@ -263,8 +263,8 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('register') }}">
-                                <i class="fas fa-user-plus me-2"></i>Register
+                            <a href="{{ url_for('register_person') }}" class="{% if request.endpoint == 'register_person' %}active{% endif %}">
+                                <i class="fas fa-user-plus"></i>Register Person
                             </a>
                         </li>
                     {% endif %}
@@ -296,8 +296,8 @@
                             </a>
                         </li>
                         <li>
-                            <a href="{{ url_for('register_missing_person') }}" class="{% if request.endpoint == 'register_missing_person' %}active{% endif %}">
-                                <i class="fas fa-user-plus"></i>Register Missing Person
+                            <a href="{{ url_for('register_person') }}" class="{% if request.endpoint == 'register_person' %}active{% endif %}">
+                                <i class="fas fa-user-plus"></i>Register Person
                             </a>
                         </li>
                         <li>

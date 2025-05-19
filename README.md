@@ -7,120 +7,156 @@
 
 A comprehensive web-based system for managing and tracking missing persons cases, featuring face recognition technology and advanced search capabilities.
 
-## 📸 Screenshots
+## 📸 How It Works
 
-### Dashboard
+### 1. System Dashboard
 ![Dashboard](screenshots/dashboard.png)
-*Main dashboard showing system status, statistics, and recent cases*
+*The main dashboard provides a real-time overview of the system:*
+- System status monitoring
+- Quick statistics (Total Missing, Found Persons, Active Cases)
+- Recent found persons list
+- Active missing persons cases
+- Real-time system clock
 
-### Missing Persons List
-![Missing Persons](screenshots/missing-persons.png)
-*List of all missing persons with search and filter options*
+### 2. Registering a Missing Person
+![Register Missing Person](screenshots/register-missing.png)
+*Step-by-step process to register a new missing person:*
+1. Click "Register Missing Person" in the sidebar
+2. Fill in personal details (name, age, description)
+3. Upload recent photos
+4. Add last seen location and date
+5. Submit for processing
 
-### Found Persons
+### 3. Face Recognition System
+![Face Recognition](screenshots/face-recognition.png)
+*Advanced face matching technology:*
+- Upload a photo for matching
+- System processes facial features
+- Compares against database
+- Shows match probability
+- Displays potential matches
+
+### 4. Search and Filter
+![Search Interface](screenshots/search.png)
+*Powerful search capabilities:*
+- Search by name, age, location
+- Filter by date range
+- Advanced filters (height, clothing, etc.)
+- Real-time results
+- Export functionality
+
+### 5. Case Management
+![Case Management](screenshots/case-management.png)
+*Comprehensive case tracking:*
+- Case status updates
+- Timeline of events
+- Contact information
+- Related cases
+- Document management
+
+### 6. Found Persons
 ![Found Persons](screenshots/found-persons.png)
-*List of found persons with status updates*
-
-### Face Match
-![Face Match](screenshots/face-match.png)
-*Face recognition interface for matching missing persons*
-
-### Search Interface
-![Search](screenshots/search.png)
-*Advanced search interface with multiple filters*
-
-### Case Details
-![Case Details](screenshots/case-details.png)
-*Detailed view of a missing person case*
+*Managing found persons:*
+- Mark cases as resolved
+- Update status
+- Add recovery details
+- Generate reports
+- Archive cases
 
 ## 🌟 Features
 
-- **User Authentication**
-  - Secure login and registration system
-  - Role-based access control
-  - Session management
+* **User Authentication**
+  * Secure login and registration system
+  * Role-based access control (Admin/User)
+  * Session management
 
-- **Missing Persons Management**
-  - Register new missing person cases
-  - Upload and manage person details
-  - Track case status and updates
+* **Missing Persons Management**
+  * Register new missing person cases
+  * Upload and manage person details
+  * Track case status and updates
 
-- **Face Recognition**
-  - Advanced face matching technology
-  - Image comparison capabilities
-  - Match probability scoring
+* **Face Recognition**
+  * Advanced face matching technology
+  * Image comparison capabilities
+  * Match probability scoring
 
-- **Search & Filter**
-  - Advanced search functionality
-  - Multiple filter options
-  - Real-time results
+* **Search & Filter**
+  * Advanced search functionality
+  * Multiple filter options
+  * Real-time results
 
-- **Case Management**
-  - Track found persons
-  - Update case status
-  - Case history and timeline
+* **Case Management**
+  * Track found persons
+  * Update case status
+  * Case history and timeline
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- Python 3.8 or higher
-- pip (Python package installer)
-- Virtual environment (recommended)
+* Python 3.8 or higher
+* MySQL Server
+* Virtual environment (recommended)
 
 ### Installation
 
 1. Clone the repository:
-   ```bash
-   git clone https://github.com/SadaamHassan68/missing-persons-system.git
-   cd missing-persons-system
-   ```
+```bash
+git clone https://github.com/yourusername/missing-persons-system.git
+cd missing-persons-system
+```
 
 2. Create and activate virtual environment:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+```bash
+# Windows
+python -m venv venv
+venv\Scripts\activate
+
+# Linux/Mac
+python3 -m venv venv
+source venv/bin/activate
+```
 
 3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+pip install -r requirements.txt
+```
 
-4. Set up environment variables:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
+4. Set up the database:
+```bash
+# Windows
+setup_database.bat
 
-5. Initialize the database:
-   ```bash
-   flask db upgrade
-   ```
+# Linux/Mac
+mysql -u root -p < database_setup.sql
+```
 
-6. Run the application:
-   ```bash
-   flask run
-   ```
+5. Run the application:
+```bash
+# Windows
+run_flask.bat
+
+# Linux/Mac
+flask run
+```
 
 ## 🛠️ Technology Stack
 
-- **Backend**
-  - Python
-  - Flask Framework
-  - SQLAlchemy ORM
-  - Face Recognition Library
+* **Backend**
+  * Python
+  * Flask Framework
+  * SQLAlchemy ORM
+  * Face Recognition Library
 
-- **Frontend**
-  - HTML5
-  - CSS3
-  - JavaScript
-  - Bootstrap 5
-  - Font Awesome Icons
+* **Frontend**
+  * HTML5
+  * CSS3
+  * JavaScript
+  * Bootstrap 5
+  * Font Awesome Icons
 
-- **Database**
-  - SQLite (Development)
-  - PostgreSQL (Production)
+* **Database**
+  * MySQL
 
 ## 📁 Project Structure
 
@@ -132,41 +168,46 @@ missing-persons-system/
 │   ├── routes/
 │   ├── static/
 │   └── templates/
+├── core/
+│   └── face_recognition/
 ├── migrations/
-├── tests/
-├── screenshots/          # Project screenshots
+├── static/
+│   ├── css/
+│   ├── js/
+│   └── uploads/
+├── templates/
 ├── .env.example
 ├── .gitignore
+├── app.py
 ├── config.py
 ├── requirements.txt
-├── README.md
-└── run.py
+└── README.md
 ```
 
 ## 🔒 Security Features
 
-- Password hashing
-- CSRF protection
-- Session management
-- Input validation
-- Secure file uploads
-- XSS prevention
+* Password hashing
+* CSRF protection
+* Session management
+* Input validation
+* Secure file uploads
+* XSS prevention
 
 ## 📝 API Documentation
 
 ### Authentication Endpoints
 
-- `POST /api/login` - User login
-- `POST /api/register` - User registration
-- `POST /api/logout` - User logout
+* `POST /login` - User login
+* `POST /register` - User registration
+* `GET /logout` - User logout
 
 ### Missing Persons Endpoints
 
-- `GET /api/missing-persons` - List all missing persons
-- `POST /api/missing-persons` - Register new missing person
-- `GET /api/missing-persons/<id>` - Get specific case
-- `PUT /api/missing-persons/<id>` - Update case
-- `DELETE /api/missing-persons/<id>` - Delete case
+* `GET /missing-persons` - List all missing persons
+* `POST /missing-persons` - Register new missing person
+* `GET /missing-persons/<id>` - Get specific case
+* `PUT /missing-persons/<id>` - Update case
+* `DELETE /missing-persons/<id>` - Delete case
 
 ## 🤝 Contributing
 
@@ -178,17 +219,17 @@ missing-persons-system/
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## 👥 Authors
 
-- Sadaam Hassan - Initial work - [SadaamHassan68](https://github.com/SadaamHassan68)
+* Your Name - Initial work
 
 ## 🙏 Acknowledgments
 
-- Thanks to all contributors
-- Inspired by the need for better missing persons tracking
-- Built with modern web technologies
+* Thanks to all contributors
+* Inspired by the need for better missing persons tracking
+* Built with modern web technologies
 
 ## 📞 Support
 
