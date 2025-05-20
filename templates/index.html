@@ -228,6 +228,7 @@
     font-size: 0.875rem;
 }
 </style>
+
 {% endblock %}
 
 {% block scripts %}
@@ -237,6 +238,7 @@ function updateSystemTime() {
     const timeString = now.toLocaleTimeString('en-US', { hour12: false });
     document.getElementById('system-time').textContent = timeString;
 }
+
 setInterval(updateSystemTime, 1000);
 updateSystemTime();
 </script>

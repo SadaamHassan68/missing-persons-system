@@ -13,15 +13,23 @@ from PIL import Image
 from functools import wraps
 import time
 import json
+from flask_mail import Mail, Message
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/missing_persons'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'your_gmail@gmail.com'  # Replace with your Gmail
+app.config['MAIL_PASSWORD'] = 'your_gmail_app_password'  # Use an App Password
 
 # Create upload folder if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+mail = Mail(app)
 
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -330,8 +338,8 @@ def match_person():
             # Process uploaded image with optimized parameters
             unknown_image = face_recognition.load_image_file(photo_path)
             
-            # Use CNN face detection for better accuracy
-            face_locations = face_recognition.face_locations(unknown_image, model="cnn")
+            # Use HOG face detection for speed
+            face_locations = face_recognition.face_locations(unknown_image, model="hog")
             
             if not face_locations:
                 os.remove(photo_path)
@@ -342,8 +350,8 @@ def match_person():
             unknown_encodings = face_recognition.face_encodings(
                 unknown_image,
                 face_locations,
-                num_jitters=10,  # Increased jitters for better accuracy
-                model="large"    # Using large model for better accuracy
+                num_jitters=1,  # Reduced jitters for speed
+                model="small"   # Using small model for speed
             )
             
             if not unknown_encodings:
@@ -374,50 +382,43 @@ def match_person():
                     for unknown_encoding in unknown_encodings:
                         # Calculate face distance
                         distance = face_recognition.face_distance([known_encoding], unknown_encoding)[0]
+                        
+                        # Enhanced base confidence calculation
                         base_confidence = (1 - distance) * 100
+                        
+                        # Apply confidence boost based on distance
+                        if distance < 0.4:  # Very close match
+                            base_confidence *= 1.2
+                        elif distance < 0.5:  # Good match
+                            base_confidence *= 1.1
+                        elif distance < 0.6:  # Decent match
+                            base_confidence *= 1.05
 
-                        # Enhanced quality checks
-                        if base_confidence > 70:  # Lower initial threshold to catch more potential matches
+                        # Quick initial check with higher threshold
+                        if base_confidence > 70:  # Lower threshold to catch more potential matches
                             # Calculate face size ratio
                             face_height = face_locations[0][2] - face_locations[0][0]
                             face_width = face_locations[0][1] - face_locations[0][3]
                             face_size_ratio = (face_height * face_width) / (unknown_image.shape[0] * unknown_image.shape[1])
                             
                             # Enhanced size boost calculation
-                            size_confidence_boost = min(face_size_ratio * 400, 25)  # Increased multiplier and max boost
+                            size_confidence_boost = min(face_size_ratio * 300, 20)
                             
                             # Calculate facial features quality
                             face_landmarks = face_recognition.face_landmarks(unknown_image, face_locations)
                             landmarks_quality = 1.0
                             if face_landmarks:
-                                # Check for all major facial features
-                                required_landmarks = [
-                                    'left_eye', 'right_eye', 'nose_bridge', 'nose_tip',
-                                    'top_lip', 'bottom_lip', 'left_eyebrow', 'right_eyebrow',
-                                    'chin'
-                                ]
+                                required_landmarks = ['left_eye', 'right_eye', 'nose_bridge', 'nose_tip']
                                 detected_landmarks = sum(1 for landmark in required_landmarks if landmark in face_landmarks[0])
                                 landmarks_quality = detected_landmarks / len(required_landmarks)
                             
-                            # Calculate face angle quality
-                            face_angle_quality = 1.0
-                            if face_landmarks and 'left_eye' in face_landmarks[0] and 'right_eye' in face_landmarks[0]:
-                                left_eye = face_landmarks[0]['left_eye']
-                                right_eye = face_landmarks[0]['right_eye']
-                                left_eye_center = np.mean(left_eye, axis=0)
-                                right_eye_center = np.mean(right_eye, axis=0)
-                                eye_angle = np.abs(np.arctan2(right_eye_center[1] - left_eye_center[1],
-                                                            right_eye_center[0] - left_eye_center[0]))
-                                face_angle_quality = 1.0 - min(eye_angle / (np.pi/4), 0.5)
-                            
                             # Calculate final confidence with enhanced factors
                             final_confidence = base_confidence + size_confidence_boost
-                            final_confidence *= (0.85 + 0.15 * landmarks_quality)  # Increased base quality factor
-                            final_confidence *= (0.85 + 0.15 * face_angle_quality)  # Increased base quality factor
+                            final_confidence *= (0.95 + 0.05 * landmarks_quality)  # Increased base quality factor
                             
                             # Additional boost for high-quality matches
-                            if base_confidence > 85:
-                                final_confidence *= 1.2  # Increased boost for high-quality matches
+                            if base_confidence > 80:
+                                final_confidence *= 1.15  # Increased boost for high-quality matches
                             
                             # Additional boost for perfect landmarks
                             if landmarks_quality > 0.9:
@@ -432,12 +433,12 @@ def match_person():
                                         'base_confidence': base_confidence,
                                         'size_boost': size_confidence_boost,
                                         'landmarks_quality': landmarks_quality * 100,
-                                        'face_angle_quality': face_angle_quality * 100
+                                        'face_angle_quality': 100  # Simplified
                                     }
                                 }
 
-                # Higher threshold for matches (85%)
-                if best_match and best_confidence > 85:
+                # Lower threshold for matches (80%)
+                if best_match and best_confidence > 80:
                     matches.append(best_match)
             
             # Clean up temporary file
@@ -446,6 +447,30 @@ def match_person():
             if matches:
                 # Sort matches by confidence
                 matches.sort(key=lambda x: x['confidence'], reverse=True)
+                best_match = matches[0]['person']
+
+                # If not already found, mark as found and send email
+                if not best_match.is_found:
+                    best_match.is_found = True
+                    best_match.date_found = datetime.now()
+                    db.session.commit()
+
+                    # Send email to contact person
+                    subject = "Good News: Missing Person Found!"
+                    recipient = best_match.contact_email
+                    body = f"""Dear {best_match.contact_name},
+
+We are happy to inform you that {best_match.name} has been found by our system.
+
+Best regards,
+Missing Persons System Team
+"""
+                    try:
+                        msg = Message(subject, recipients=[recipient], body=body)
+                        mail.send(msg)
+                    except Exception as e:
+                        print(f"Failed to send email: {e}")
+
                 return render_template('match_result.html', matches=matches)
             else:
                 flash('No matches found. Please try again with a clearer photo.', 'info')
@@ -480,7 +505,8 @@ def found_persons():
     age_range = request.args.get('age', '')
     gender = request.args.get('gender', '')
     location = request.args.get('location', '')
-    date = request.args.get('date', '')
+    date_found = request.args.get('date_found', '')
+    sort_by = request.args.get('sort_by', 'date_found')  # Default sort by date found
 
     # Start with base query
     query = MissingPerson.query.filter_by(is_found=True)
@@ -502,13 +528,41 @@ def found_persons():
     if location:
         query = query.filter(MissingPerson.last_seen_location.ilike(f'%{location}%'))
 
-    if date:
-        query = query.filter(MissingPerson.last_seen == datetime.strptime(date, '%Y-%m-%d'))
+    if date_found:
+        query = query.filter(MissingPerson.date_found == datetime.strptime(date_found, '%Y-%m-%d'))
+
+    # Apply sorting
+    if sort_by == 'date_found':
+        query = query.order_by(MissingPerson.date_found.desc())
+    elif sort_by == 'name':
+        query = query.order_by(MissingPerson.name)
+    elif sort_by == 'age':
+        query = query.order_by(MissingPerson.age)
+    elif sort_by == 'missing_since':
+        query = query.order_by(MissingPerson.last_seen.desc())
 
     # Get filtered results
     found_persons = query.all()
 
-    return render_template('found_persons.html', found_persons=found_persons)
+    # Get statistics
+    total_found = len(found_persons)
+    found_today = len([p for p in found_persons if p.date_found.date() == datetime.now().date()])
+    found_this_week = len([p for p in found_persons if (datetime.now().date() - p.date_found.date()).days <= 7])
+    found_this_month = len([p for p in found_persons if p.date_found.month == datetime.now().month])
+
+    return render_template('found_persons.html', 
+                         found_persons=found_persons,
+                         total_found=total_found,
+                         found_today=found_today,
+                         found_this_week=found_this_week,
+                         found_this_month=found_this_month,
+                         current_filters={
+                             'age_range': age_range,
+                             'gender': gender,
+                             'location': location,
+                             'date_found': date_found,
+                             'sort_by': sort_by
+                         })
 
 @app.route('/missing')
 @login_required
@@ -573,31 +627,95 @@ def mark_person_missing(id):
         flash(f'Error marking person as missing: {str(e)}', 'error')
     return redirect(url_for('missing_person_detail', id=id))
 
+@app.route('/missing_person/<int:id>/delete', methods=['POST'])
+@login_required
+def delete_missing_person(id):
+    person = MissingPerson.query.get_or_404(id)
+    try:
+        # Delete all photos associated with the person
+        for photo in person.photos:
+            photo_path = os.path.join(app.config['UPLOAD_FOLDER'], photo.photo_path)
+            if os.path.exists(photo_path):
+                os.remove(photo_path)
+            db.session.delete(photo)
+        db.session.delete(person)
+        db.session.commit()
+        flash('Missing person deleted successfully.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting missing person: {str(e)}', 'danger')
+    return redirect(url_for('missing_persons'))
+
+@app.route('/missing_person/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_missing_person(id):
+    person = MissingPerson.query.get_or_404(id)
+    if request.method == 'POST':
+        try:
+            person.name = request.form['name']
+            person.age = int(request.form['age'])
+            person.gender = request.form['gender']
+            person.last_seen = datetime.strptime(request.form['last_seen'], '%Y-%m-%dT%H:%M')
+            person.last_seen_location = request.form['last_seen_location']
+            person.description = request.form['description']
+            person.contact_name = request.form['contact_name']
+            person.contact_phone = request.form['contact_phone']
+            person.contact_email = request.form['contact_email']
+
+            # Handle multiple photo uploads
+            if 'photos' in request.files:
+                photos = request.files.getlist('photos')
+                for photo in photos:
+                    if photo and photo.filename != '':
+                        filename = secure_filename(photo.filename)
+                        photo_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                        photo.save(photo_path)
+
+                        # Process face encoding for the new photo
+                        face_encoding = process_face_encoding(photo_path)
+                        if face_encoding is not None:
+                            new_photo = PersonPhoto(
+                                photo_path=filename,
+                                face_encoding=face_encoding,
+                                is_primary=False,
+                                missing_person_id=person.id
+                            )
+                            db.session.add(new_photo)
+                        else:
+                            flash(f'Could not detect a face in {filename}.', 'warning')
+
+            db.session.commit()
+            flash('Missing person updated successfully.', 'success')
+            return redirect(url_for('missing_person_detail', id=person.id))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating missing person: {str(e)}', 'danger')
+    return render_template('edit_missing_person.html', person=person)
+
 def process_face_encoding(image_path):
     try:
         # Load the image file
         image = face_recognition.load_image_file(image_path)
         
-        # Find all face locations in the image with more accurate model
-        face_locations = face_recognition.face_locations(image, model="cnn")
+        # Use HOG model for faster face detection
+        face_locations = face_recognition.face_locations(image, model="hog")
         
         if not face_locations:
             print(f"No face detected in {image_path}")
             return None
             
-        # Get face encodings with more jitters for better accuracy
+        # Get face encodings with optimized parameters
         face_encodings = face_recognition.face_encodings(
             image, 
             face_locations,
-            num_jitters=10,  # Increased from 1 to 10 for better accuracy
-            model="large"    # Using large model for better accuracy
+            num_jitters=1,  # Reduced jitters for speed
+            model="small"   # Using small model for speed
         )
         
         if not face_encodings:
             print(f"Could not encode face in {image_path}")
             return None
             
-        # Return the first face encoding (assuming one face per photo)
         return face_encodings[0].tobytes()
         
     except Exception as e:
@@ -666,6 +784,24 @@ def find_person():
                 return redirect(request.url)
                 
     return render_template('find_person.html')
+
+@app.route('/person_photo/<int:photo_id>/delete', methods=['POST'])
+@login_required
+def delete_person_photo(photo_id):
+    photo = PersonPhoto.query.get_or_404(photo_id)
+    person_id = photo.missing_person_id
+    try:
+        # Remove the photo file from disk
+        photo_path = os.path.join(app.config['UPLOAD_FOLDER'], photo.photo_path)
+        if os.path.exists(photo_path):
+            os.remove(photo_path)
+        db.session.delete(photo)
+        db.session.commit()
+        flash('Photo deleted successfully.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting photo: {str(e)}', 'danger')
+    return redirect(url_for('edit_missing_person', id=person_id))
 
 if __name__ == '__main__':
     with app.app_context():

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Edit Missing Person{% endblock %}
+{% block content %}
+<div class="container py-5">
+    <h2>Edit Missing Person</h2>
+    <form method="POST" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input type="text" name="name" class="form-control" value="{{ person.name }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Age</label>
+            <input type="number" name="age" class="form-control" value="{{ person.age }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Gender</label>
+            <select name="gender" class="form-control" required>
+                <option value="M" {% if person.gender == 'M' %}selected{% endif %}>Male</option>
+                <option value="F" {% if person.gender == 'F' %}selected{% endif %}>Female</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Last Seen</label>
+            <input type="datetime-local" name="last_seen" class="form-control" value="{{ person.last_seen.strftime('%Y-%m-%dT%H:%M') }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Last Seen Location</label>
+            <input type="text" name="last_seen_location" class="form-control" value="{{ person.last_seen_location }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea name="description" class="form-control" required>{{ person.description }}</textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Contact Name</label>
+            <input type="text" name="contact_name" class="form-control" value="{{ person.contact_name }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Contact Phone</label>
+            <input type="text" name="contact_phone" class="form-control" value="{{ person.contact_phone }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Contact Email</label>
+            <input type="email" name="contact_email" class="form-control" value="{{ person.contact_email }}" required>
+        </div>
+        {% if person.photos %}
+            <div class="mb-3">
+                <label class="form-label">Existing Photos</label>
+                <div class="row">
+                    {% for photo in person.photos %}
+                        <div class="col-3 mb-2">
+                            <img src="{{ url_for('static', filename='uploads/' ~ photo.photo_path) }}" class="img-fluid rounded mb-1" alt="Photo">
+                            <form action="{{ url_for('delete_person_photo', photo_id=photo.id) }}" method="POST" onsubmit="return confirm('Delete this photo?');">
+                                <button type="submit" class="btn btn-sm btn-danger w-100">Delete</button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+        <div class="mb-3">
+            <label class="form-label">Update/Add Photo</label>
+            <input type="file" name="photos" class="form-control" accept="image/*" multiple>
+        </div>
+        <button type="submit" class="btn btn-primary">Update</button>
+        <a href="{{ url_for('missing_person_detail', id=person.id) }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}
