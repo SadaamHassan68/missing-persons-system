@@ -3,14 +3,14 @@
 {% block content %}
 <div class="container py-5">
     <h2>Edit Missing Person</h2>
-    <form method="POST" action="{{ url_for('edit_missing_person', id=person.id) }}" enctype="multipart/form-data">
+    <form method="POST" enctype="multipart/form-data">
         <div class="mb-3">
             <label class="form-label">Name</label>
             <input type="text" name="name" class="form-control" value="{{ person.name }}" required>
         </div>
         <div class="mb-3">
             <label class="form-label">Age</label>
-            <input type="number" name="age" class="form-control" value="{{ person.age }}" min="1" max="120" required>
+            <input type="number" name="age" class="form-control" value="{{ person.age }}" required>
         </div>
         <div class="mb-3">
             <label class="form-label">Gender</label>
@@ -24,13 +24,8 @@
             <input type="datetime-local" name="last_seen" class="form-control" value="{{ person.last_seen.strftime('%Y-%m-%dT%H:%M') }}" required>
         </div>
         <div class="mb-3">
-            <label for="last_seen_location" class="form-label">Last Seen Location</label>
-            <select class="form-select" id="last_seen_location" name="last_seen_location" required>
-                <option value="">Select a location in Somalia</option>
-                {% for region in regions %}
-                <option value="{{ region }}" {% if region == person.last_seen_location %}selected{% endif %}>{{ region }}</option>
-                {% endfor %}
-            </select>
+            <label class="form-label">Last Seen Location</label>
+            <input type="text" name="last_seen_location" class="form-control" value="{{ person.last_seen_location }}" required>
         </div>
         <div class="mb-3">
             <label class="form-label">Description</label>
@@ -42,7 +37,7 @@
         </div>
         <div class="mb-3">
             <label class="form-label">Contact Phone</label>
-            <input type="tel" name="contact_phone" class="form-control" value="{{ person.contact_phone }}" required>
+            <input type="text" name="contact_phone" class="form-control" value="{{ person.contact_phone }}" required>
         </div>
         <div class="mb-3">
             <label class="form-label">Contact Email</label>
@@ -54,8 +49,8 @@
                 <div class="row">
                     {% for photo in person.photos %}
                         <div class="col-3 mb-2">
-                            <img src="{{ url_for('static', filename='uploads/' + photo.photo_path) }}" class="img-fluid rounded mb-1" alt="Photo">
-                            <form action="{{ url_for('delete_person_photo', photo_id=photo.id) }}" method="POST" onsubmit="return confirm('Delete this photo?');" style="display: inline;">
+                            <img src="{{ url_for('static', filename='uploads/' ~ photo.photo_path) }}" class="img-fluid rounded mb-1" alt="Photo">
+                            <form action="{{ url_for('delete_person_photo', photo_id=photo.id) }}" method="POST" onsubmit="return confirm('Delete this photo?');">
                                 <button type="submit" class="btn btn-sm btn-danger w-100">Delete</button>
                             </form>
                         </div>
@@ -66,16 +61,9 @@
         <div class="mb-3">
             <label class="form-label">Update/Add Photo</label>
             <input type="file" name="photos" class="form-control" accept="image/*" multiple>
-            <small class="text-muted">Allowed formats: JPG, JPEG, PNG, GIF</small>
         </div>
-        <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save me-2"></i>Update
-            </button>
-            <a href="{{ url_for('missing_person_detail', id=person.id) }}" class="btn btn-secondary">
-                <i class="fas fa-times me-2"></i>Cancel
-            </a>
-        </div>
+        <button type="submit" class="btn btn-primary">Update</button>
+        <a href="{{ url_for('missing_person_detail', id=person.id) }}" class="btn btn-secondary">Cancel</a>
     </form>
 </div>
 {% endblock %}

@@ -3,11 +3,10 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
-from dotenv import load_dotenv
 import cv2
 import face_recognition
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime
 import base64
 from io import BytesIO
 from PIL import Image
@@ -15,51 +14,28 @@ from functools import wraps
 import time
 import json
 from flask_mail import Mail, Message
-from twilio.rest import Client
-
-# Load environment variables
-load_dotenv()
 
 app = Flask(__name__)
-
-# Configuration
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-secret-key-for-development')
-app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{os.getenv('DB_USER', 'root')}:{os.getenv('DB_PASSWORD', '')}@{os.getenv('DB_HOST', 'localhost')}/{os.getenv('DB_NAME', 'missing_persons')}"
+app.config['SECRET_KEY'] = 'your-secret-key'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/missing_persons'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-
-# Email Configuration
-app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
-app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USE_SSL'] = False
-app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_USERNAME')
-app.config['MAIL_MAX_EMAILS'] = 100
-app.config['MAIL_ASCII_ATTACHMENTS'] = False
-app.config['MAIL_SUPPRESS_SEND'] = False
-
-# Twilio Configuration
-app.config['TWILIO_ACCOUNT_SID'] = os.getenv('TWILIO_ACCOUNT_SID')
-app.config['TWILIO_AUTH_TOKEN'] = os.getenv('TWILIO_AUTH_TOKEN')
-app.config['TWILIO_WHATSAPP_NUMBER'] = os.getenv('TWILIO_WHATSAPP_NUMBER')
+app.config['MAIL_USERNAME'] = 'your_gmail@gmail.com'  # Replace with your Gmail
+app.config['MAIL_PASSWORD'] = 'your_gmail_app_password'  # Use an App Password
 
 # Create upload folder if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# Initialize extensions
 mail = Mail(app)
-db = SQLAlchemy(app)
-
-# Initialize Twilio client only if credentials are available
-twilio_client = None
-if app.config['TWILIO_ACCOUNT_SID'] and app.config['TWILIO_AUTH_TOKEN']:
-    twilio_client = Client(app.config['TWILIO_ACCOUNT_SID'], app.config['TWILIO_AUTH_TOKEN'])
 
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+db = SQLAlchemy(app)
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -362,7 +338,7 @@ def match_person():
             # Process uploaded image with optimized parameters
             unknown_image = face_recognition.load_image_file(photo_path)
             
-            # Use HOG model for faster face detection
+            # Use HOG face detection for speed
             face_locations = face_recognition.face_locations(unknown_image, model="hog")
             
             if not face_locations:
@@ -383,13 +359,9 @@ def match_person():
                 flash('Could not process face features. Please try again with a clearer photo.', 'error')
                 return redirect(url_for('match_person'))
             
-            # Get all missing persons with their photos preloaded
-            missing_persons = MissingPerson.query.filter_by(is_found=False).options(
-                db.joinedload(MissingPerson.photos)
-            ).all()
-            
+            # Get all missing persons
+            missing_persons = MissingPerson.query.filter_by(is_found=False).all()
             matches = []
-            auto_found_person = None
             
             # Process each person's photos
             for person in missing_persons:
@@ -411,20 +383,46 @@ def match_person():
                         # Calculate face distance
                         distance = face_recognition.face_distance([known_encoding], unknown_encoding)[0]
                         
+                        # Enhanced base confidence calculation
+                        base_confidence = (1 - distance) * 100
+                        
+                        # Apply confidence boost based on distance
+                        if distance < 0.4:  # Very close match
+                            base_confidence *= 1.2
+                        elif distance < 0.5:  # Good match
+                            base_confidence *= 1.1
+                        elif distance < 0.6:  # Decent match
+                            base_confidence *= 1.05
+
                         # Quick initial check with higher threshold
-                        if distance < 0.6:  # More lenient threshold for initial check
-                            # Simplified confidence calculation for speed
-                            base_confidence = (1 - distance) * 100
-                            
-                            # Calculate face size ratio (simplified)
+                        if base_confidence > 70:  # Lower threshold to catch more potential matches
+                            # Calculate face size ratio
                             face_height = face_locations[0][2] - face_locations[0][0]
                             face_width = face_locations[0][1] - face_locations[0][3]
                             face_size_ratio = (face_height * face_width) / (unknown_image.shape[0] * unknown_image.shape[1])
+                            
+                            # Enhanced size boost calculation
                             size_confidence_boost = min(face_size_ratio * 300, 20)
                             
-                            # Calculate final confidence
+                            # Calculate facial features quality
+                            face_landmarks = face_recognition.face_landmarks(unknown_image, face_locations)
+                            landmarks_quality = 1.0
+                            if face_landmarks:
+                                required_landmarks = ['left_eye', 'right_eye', 'nose_bridge', 'nose_tip']
+                                detected_landmarks = sum(1 for landmark in required_landmarks if landmark in face_landmarks[0])
+                                landmarks_quality = detected_landmarks / len(required_landmarks)
+                            
+                            # Calculate final confidence with enhanced factors
                             final_confidence = base_confidence + size_confidence_boost
-                            final_confidence = min(final_confidence, 100.0)
+                            final_confidence *= (0.95 + 0.05 * landmarks_quality)  # Increased base quality factor
+                            
+                            # Additional boost for high-quality matches
+                            if base_confidence > 80:
+                                final_confidence *= 1.15  # Increased boost for high-quality matches
+                            
+                            # Additional boost for perfect landmarks
+                            if landmarks_quality > 0.9:
+                                final_confidence *= 1.1  # 10% boost for nearly perfect landmarks
 
                             if final_confidence > best_confidence:
                                 best_confidence = final_confidence
@@ -433,62 +431,48 @@ def match_person():
                                     'confidence': final_confidence,
                                     'quality_metrics': {
                                         'base_confidence': base_confidence,
-                                        'size_boost': size_confidence_boost
+                                        'size_boost': size_confidence_boost,
+                                        'landmarks_quality': landmarks_quality * 100,
+                                        'face_angle_quality': 100  # Simplified
                                     }
                                 }
 
-                # Lower threshold for matches (75%)
-                if best_match and best_confidence > 75:
+                # Lower threshold for matches (80%)
+                if best_match and best_confidence > 80:
                     matches.append(best_match)
-                    
-                    # If confidence is very high (>=90%), mark for auto-found
-                    if best_confidence >= 90 and not auto_found_person:
-                        auto_found_person = {
-                            'person': person,
-                            'confidence': best_confidence,
-                            'match': best_match
-                        }
+            
+            # Clean up temporary file
+            os.remove(photo_path)
             
             if matches:
                 # Sort matches by confidence
                 matches.sort(key=lambda x: x['confidence'], reverse=True)
-                
-                # If we have a very high confidence match, automatically mark as found
-                if auto_found_person:
-                    person = auto_found_person['person']
-                    
-                    # Update person status
-                    person.is_found = True
-                    person.date_found = datetime.utcnow()
-                    
-                    # Create match report
-                    match_report = MatchReport(
-                        missing_person_id=person.id,
-                        location=request.form.get('location', 'Unknown'),
-                        confidence_score=auto_found_person['confidence'],
-                        photo_path=filename,
-                        is_verified=True  # Auto-verify high confidence matches
-                    )
-                    
-                    # Save changes
-                    db.session.add(match_report)
+                best_match = matches[0]['person']
+
+                # If not already found, mark as found and send email
+                if not best_match.is_found:
+                    best_match.is_found = True
+                    best_match.date_found = datetime.now()
                     db.session.commit()
-                    
-                    # Send notification email using the new function
-                    if send_notification_email(person, person.date_found):
-                        flash(f'High confidence match found! {person.name} has been marked as found and contact person has been notified.', 'success')
-                    else:
-                        flash(f'High confidence match found! {person.name} has been marked as found but there was an error sending the notification email.', 'warning')
-                    
-                    return redirect(url_for('found_persons'))
-                
-                # Show match results with accuracy information for lower confidence matches
-                return render_template('match_result.html', 
-                                    matches=matches, 
-                                    uploaded_image=filename,
-                                    auto_found=False)
+
+                    # Send email to contact person
+                    subject = "Good News: Missing Person Found!"
+                    recipient = best_match.contact_email
+                    body = f"""Dear {best_match.contact_name},
+
+We are happy to inform you that {best_match.name} has been found by our system.
+
+Best regards,
+Missing Persons System Team
+"""
+                    try:
+                        msg = Message(subject, recipients=[recipient], body=body)
+                        mail.send(msg)
+                    except Exception as e:
+                        print(f"Failed to send email: {e}")
+
+                return render_template('match_result.html', matches=matches)
             else:
-                os.remove(photo_path)
                 flash('No matches found. Please try again with a clearer photo.', 'info')
                 return redirect(url_for('match_person'))
                 
@@ -633,21 +617,14 @@ def mark_person_found(id):
 @app.route('/missing_person/<int:id>/mark_missing', methods=['POST'])
 @login_required
 def mark_person_missing(id):
-    person = MissingPerson.query.get_or_404(id)
-    
-    # Update person's status
-    person.is_found = False
-    person.date_found = None
-    person.last_seen = datetime.utcnow()  # Update last seen to current time
-    person.updated_at = datetime.utcnow()
-    
     try:
+        person = MissingPerson.query.get_or_404(id)
+        person.is_found = False
+        person.date_found = None
         db.session.commit()
-        flash(f'{person.name} has been marked as missing again.', 'warning')
+        flash('Person has been marked as missing again', 'info')
     except Exception as e:
-        db.session.rollback()
-        flash('Error updating person status. Please try again.', 'danger')
-    
+        flash(f'Error marking person as missing: {str(e)}', 'error')
     return redirect(url_for('missing_person_detail', id=id))
 
 @app.route('/missing_person/<int:id>/delete', methods=['POST'])
@@ -675,72 +652,22 @@ def edit_missing_person(id):
     person = MissingPerson.query.get_or_404(id)
     if request.method == 'POST':
         try:
-            print("Form data received:", request.form)  # Debug log
-            
-            # Get form data with validation
-            name = request.form.get('name', '').strip()
-            if not name:
-                raise ValueError("Name is required")
-            
-            try:
-                age = int(request.form.get('age', 0))
-                if age <= 0 or age > 120:
-                    raise ValueError("Age must be between 1 and 120")
-            except ValueError:
-                raise ValueError("Invalid age value")
-            
-            gender = request.form.get('gender')
-            if gender not in ['M', 'F']:
-                raise ValueError("Invalid gender value")
-            
-            try:
-                last_seen = datetime.strptime(request.form.get('last_seen'), '%Y-%m-%dT%H:%M')
-            except ValueError:
-                raise ValueError("Invalid last seen date/time")
-            
-            last_seen_location = request.form.get('last_seen_location', '').strip()
-            if not last_seen_location:
-                raise ValueError("Last seen location is required")
-            
-            description = request.form.get('description', '').strip()
-            if not description:
-                raise ValueError("Description is required")
-            
-            contact_name = request.form.get('contact_name', '').strip()
-            if not contact_name:
-                raise ValueError("Contact name is required")
-            
-            contact_phone = request.form.get('contact_phone', '').strip()
-            if not contact_phone:
-                raise ValueError("Contact phone is required")
-            
-            contact_email = request.form.get('contact_email', '').strip()
-            if not contact_email or '@' not in contact_email:
-                raise ValueError("Valid contact email is required")
-
-            # Update person's information
-            person.name = name
-            person.age = age
-            person.gender = gender
-            person.last_seen = last_seen
-            person.last_seen_location = last_seen_location
-            person.description = description
-            person.contact_name = contact_name
-            person.contact_phone = contact_phone
-            person.contact_email = contact_email
-            person.updated_at = datetime.utcnow()
+            person.name = request.form['name']
+            person.age = int(request.form['age'])
+            person.gender = request.form['gender']
+            person.last_seen = datetime.strptime(request.form['last_seen'], '%Y-%m-%dT%H:%M')
+            person.last_seen_location = request.form['last_seen_location']
+            person.description = request.form['description']
+            person.contact_name = request.form['contact_name']
+            person.contact_phone = request.form['contact_phone']
+            person.contact_email = request.form['contact_email']
 
             # Handle multiple photo uploads
             if 'photos' in request.files:
                 photos = request.files.getlist('photos')
                 for photo in photos:
                     if photo and photo.filename != '':
-                        if not allowed_file(photo.filename):
-                            raise ValueError(f"Invalid file type for {photo.filename}. Allowed types: png, jpg, jpeg, gif")
-                        
                         filename = secure_filename(photo.filename)
-                        # Add timestamp to filename to prevent duplicates
-                        filename = f"{int(time.time())}_{filename}"
                         photo_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                         photo.save(photo_path)
 
@@ -750,27 +677,19 @@ def edit_missing_person(id):
                             new_photo = PersonPhoto(
                                 photo_path=filename,
                                 face_encoding=face_encoding,
-                                is_primary=(len(person.photos) == 0),  # Make primary if first photo
+                                is_primary=False,
                                 missing_person_id=person.id
                             )
                             db.session.add(new_photo)
                         else:
-                            os.remove(photo_path)  # Remove photo if no face detected
-                            raise ValueError(f'Could not detect a face in {photo.filename}')
+                            flash(f'Could not detect a face in {filename}.', 'warning')
 
             db.session.commit()
             flash('Missing person updated successfully.', 'success')
             return redirect(url_for('missing_person_detail', id=person.id))
-            
-        except ValueError as e:
-            db.session.rollback()
-            flash(str(e), 'danger')
-            print("Validation error:", str(e))  # Debug log
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating missing person: {str(e)}', 'danger')
-            print("Error updating person:", str(e))  # Debug log
-            
     return render_template('edit_missing_person.html', person=person)
 
 def process_face_encoding(image_path):
@@ -883,172 +802,6 @@ def delete_person_photo(photo_id):
         db.session.rollback()
         flash(f'Error deleting photo: {str(e)}', 'danger')
     return redirect(url_for('edit_missing_person', id=person_id))
-
-@app.route('/report')
-def report():
-    # Get today's date
-    today = datetime.now().date()
-    
-    # Calculate statistics for today
-    today_found = MissingPerson.query.filter(db.func.date(MissingPerson.date_found) == today).count()
-    today_missing = MissingPerson.query.filter(db.func.date(MissingPerson.last_seen) == today).count()
-    today_registered = MissingPerson.query.filter(db.func.date(MissingPerson.last_seen) == today).count()
-    
-    # Get active cases (missing persons not found)
-    active_cases = MissingPerson.query.filter_by(is_found=False).count()
-    
-    # Calculate monthly statistics
-    current_month = datetime.now().month
-    current_year = datetime.now().year
-    current_day = datetime.now().day
-    
-    # This month's statistics
-    this_month_missing = MissingPerson.query.filter(
-        db.extract('month', MissingPerson.last_seen) == current_month,
-        db.extract('year', MissingPerson.last_seen) == current_year
-    ).count()
-    
-    this_month_found = MissingPerson.query.filter(
-        db.extract('month', MissingPerson.date_found) == current_month,
-        db.extract('year', MissingPerson.date_found) == current_year
-    ).count()
-    
-    # Calculate daily averages
-    daily_avg_missing = round(this_month_missing / current_day, 1) if current_day > 0 else 0
-    daily_avg_found = round(this_month_found / current_day, 1) if current_day > 0 else 0
-    
-    # Last month's statistics
-    last_month = current_month - 1 if current_month > 1 else 12
-    last_year = current_year if current_month > 1 else current_year - 1
-    
-    last_month_missing = MissingPerson.query.filter(
-        db.extract('month', MissingPerson.last_seen) == last_month,
-        db.extract('year', MissingPerson.last_seen) == last_year
-    ).count()
-    
-    last_month_found = MissingPerson.query.filter(
-        db.extract('month', MissingPerson.date_found) == last_month,
-        db.extract('year', MissingPerson.date_found) == last_year
-    ).count()
-    
-    # Calculate trends
-    missing_trend = round(((this_month_missing - last_month_missing) / last_month_missing * 100), 1) if last_month_missing > 0 else 0
-    found_trend = round(((this_month_found - last_month_found) / last_month_found * 100), 1) if last_month_found > 0 else 0
-    
-    # Calculate average response time for found cases
-    found_cases = MissingPerson.query.filter(
-        MissingPerson.is_found == True,
-        MissingPerson.date_found != None
-    ).all()
-    
-    total_response_time = 0
-    valid_cases = 0
-    
-    for case in found_cases:
-        if case.date_found and case.last_seen:
-            response_time = (case.date_found - case.last_seen).total_seconds() / 3600  # Convert to hours
-            if response_time > 0:
-                total_response_time += response_time
-                valid_cases += 1
-    
-    avg_response_time = round(total_response_time / valid_cases, 1) if valid_cases > 0 else None
-    
-    # Get recently found people (last 10)
-    recently_found = MissingPerson.query.filter(
-        MissingPerson.is_found == True
-    ).order_by(
-        MissingPerson.date_found.desc()
-    ).limit(10).all()
-    
-    # Get today's new registrations
-    today_registrations = MissingPerson.query.filter(
-        db.func.date(MissingPerson.last_seen) == today
-    ).order_by(MissingPerson.last_seen.desc()).all()
-    
-    # Get monthly data for charts
-    monthly_missing_data = []
-    monthly_found_data = []
-    
-    for month in range(1, 13):
-        missing_count = MissingPerson.query.filter(
-            db.extract('month', MissingPerson.last_seen) == month,
-            db.extract('year', MissingPerson.last_seen) == current_year
-        ).count()
-        
-        found_count = MissingPerson.query.filter(
-            db.extract('month', MissingPerson.date_found) == month,
-            db.extract('year', MissingPerson.date_found) == current_year
-        ).count()
-        
-        monthly_missing_data.append(missing_count)
-        monthly_found_data.append(found_count)
-    
-    return render_template('report.html',
-                         today_found=today_found,
-                         today_missing=today_missing,
-                         today_registered=today_registered,
-                         active_cases=active_cases,
-                         this_month_missing=this_month_missing,
-                         this_month_found=this_month_found,
-                         last_month_missing=last_month_missing,
-                         last_month_found=last_month_found,
-                         avg_response_time=avg_response_time,
-                         recently_found=recently_found,
-                         today_registrations=today_registrations,
-                         monthly_missing_data=monthly_missing_data,
-                         monthly_found_data=monthly_found_data,
-                         daily_avg_missing=daily_avg_missing,
-                         daily_avg_found=daily_avg_found,
-                         missing_trend=missing_trend,
-                         found_trend=found_trend)
-
-def send_notification_email(person, found_date=None):
-    try:
-        msg = Message(
-            subject=f"Good News: {person.name} Has Been Found!",
-            sender=app.config['MAIL_USERNAME'],
-            recipients=[person.contact_email]
-        )
-        
-        msg.body = f"""
-Dear {person.contact_name},
-
-We are pleased to inform you that {person.name} has been found!
-
-Details:
-- Name: {person.name}
-- Age: {person.age}
-- Found Date: {found_date.strftime('%Y-%m-%d %H:%M') if found_date else datetime.utcnow().strftime('%Y-%m-%d %H:%M')}
-- Location: {person.last_seen_location}
-
-Please contact us immediately to arrange for reunification.
-
-Best regards,
-Missing Persons System Team
-"""
-        mail.send(msg)
-        print(f"Email sent successfully to {person.contact_email}")
-        return True
-    except Exception as e:
-        print(f"Error sending email: {str(e)}")
-        return False
-
-@app.route('/missing_person/<int:id>/contact', methods=['POST'])
-@login_required
-def contact_found_person(id):
-    try:
-        person = MissingPerson.query.get_or_404(id)
-        
-        if send_notification_email(person):
-            flash('Contact notification has been sent successfully!', 'success')
-        else:
-            flash('Error sending contact notification. Please try again.', 'error')
-            
-    except Exception as e:
-        print(f"Error in contact_found_person: {str(e)}")
-        flash(f'Error sending contact notification: {str(e)}', 'error')
-    
-    return redirect(url_for('missing_person_detail', id=id))
 
 if __name__ == '__main__':
     with app.app_context():

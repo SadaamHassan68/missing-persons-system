@@ -3,87 +3,267 @@
 {% block title %}Match Results{% endblock %}
 
 {% block content %}
+<style>
+    .match-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .match-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .match-card.auto-found {
+        border-left: 4px solid #28a745;
+    }
+    .progress {
+        height: 25px;
+        border-radius: 12px;
+        background-color: #f0f0f0;
+    }
+    .progress-bar {
+        border-radius: 12px;
+        transition: width 1s ease-in-out;
+    }
+    .photo-container {
+        position: relative;
+        overflow: hidden;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .photo-container img {
+        transition: transform 0.3s;
+    }
+    .photo-container:hover img {
+        transform: scale(1.05);
+    }
+    .badge-found {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        padding: 8px 12px;
+        border-radius: 20px;
+        font-weight: 500;
+    }
+    .match-details {
+        padding: 20px;
+    }
+    .match-stats {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 15px;
+        margin: 15px 0;
+    }
+    .action-buttons {
+        margin-top: 20px;
+    }
+    .action-buttons .btn {
+        padding: 10px 20px;
+        border-radius: 25px;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+    .action-buttons .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .auto-found-alert {
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+        color: #155724;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+</style>
+
 <div class="container py-5">
-    <h1 class="text-center mb-4">Match Results</h1>
-
-    {% if matches %}
-    <div class="row">
-        {% for match in matches %}
-        <div class="col-md-6 mb-4">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4">
-                            {% if match.person.primary_photo %}
-                            <img src="{{ url_for('static', filename='uploads/' + match.person.primary_photo.photo_path) }}" 
-                                 class="img-fluid rounded" alt="{{ match.person.name }}">
-                            {% else %}
-                            <div class="bg-light text-center py-5 rounded">
-                                <i class="fas fa-user fa-3x text-muted"></i>
-                            </div>
-                            {% endif %}
-                        </div>
-                        <div class="col-md-8">
-                            <h3 class="card-title">{{ match.person.name }}</h3>
-                            <div class="mb-3">
-                                <div class="progress">
-                                    <div class="progress-bar bg-success" role="progressbar" 
-                                         style="width: {{ match.confidence }}%"
-                                         aria-valuenow="{{ match.confidence }}" 
-                                         aria-valuemin="0" 
-                                         aria-valuemax="100">
-                                        {{ "%.1f"|format(match.confidence) }}% Match
-                                    </div>
-                                </div>
-                            </div>
-                            <p><strong>Age:</strong> {{ match.person.age }}</p>
-                            <p><strong>Last Seen:</strong> {{ match.person.last_seen.strftime('%Y-%m-%d %H:%M') }}</p>
-                            <p><strong>Location:</strong> {{ match.person.last_seen_location }}</p>
-                            
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <h2 class="card-title text-center mb-4">Match Results</h2>
+                    
+                    {% if matches %}
+                        {% if auto_found %}
+                        <div class="auto-found-alert text-center">
+                            <h4 class="mb-2"><i class="fas fa-check-circle me-2"></i>High Confidence Match Found!</h4>
+                            <p class="mb-0">A person has been automatically marked as found due to high confidence match. Their contact has been notified.</p>
                             <div class="mt-3">
-                                <h5>Quality Metrics:</h5>
-                                <ul class="list-unstyled">
-                                    <li>Base Confidence: {{ "%.1f"|format(match.quality_metrics.base_confidence) }}%</li>
-                                    <li>Size Boost: {{ "%.1f"|format(match.quality_metrics.size_boost) }}%</li>
-                                    <li>Landmarks Quality: {{ "%.1f"|format(match.quality_metrics.landmarks_quality) }}%</li>
-                                    <li>Face Angle Quality: {{ "%.1f"|format(match.quality_metrics.face_angle_quality) }}%</li>
-                                </ul>
-                            </div>
-
-                            <div class="mt-3">
-                                <h5>Contact Information:</h5>
-                                <p><strong>Name:</strong> {{ match.person.contact_name }}</p>
-                                <p><strong>Phone:</strong> {{ match.person.contact_phone }}</p>
-                                <p><strong>Email:</strong> {{ match.person.contact_email }}</p>
-                            </div>
-
-                            <div class="mt-3">
-                                <a href="{{ url_for('missing_person_detail', id=match.person.id) }}" 
-                                   class="btn btn-primary">
-                                    <i class="fas fa-info-circle me-2"></i>View Full Details
+                                <a href="{{ url_for('found_persons') }}" class="btn btn-success">
+                                    <i class="fas fa-list me-2"></i>View Found Persons
                                 </a>
                             </div>
                         </div>
-                    </div>
+                        {% else %}
+                        <div class="alert alert-info text-center mb-4 border-0 shadow-sm">
+                            <h4 class="mb-2"><i class="fas fa-info-circle me-2"></i>Match Found!</h4>
+                            <p class="mb-0">We found {{ matches|length }} potential match(es) in our database.</p>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="text-center mb-5">
+                            <div class="photo-container d-inline-block">
+                                <img src="{{ url_for('static', filename='uploads/' + uploaded_image) }}" 
+                                     class="img-fluid rounded" 
+                                     style="max-height: 300px; object-fit: cover;"
+                                     alt="Uploaded Photo">
+                            </div>
+                            <p class="text-muted mt-2">Uploaded Photo</p>
+                        </div>
+
+                        <h4 class="text-center mb-4">Potential Matches</h4>
+                        
+                        {% for match in matches %}
+                        <div class="card match-card mb-4 {% if auto_found and loop.first %}auto-found{% endif %}">
+                            <div class="card-body p-0">
+                                <div class="row g-0">
+                                    <div class="col-md-4">
+                                        <div class="photo-container h-100">
+                                            {% if match.person.primary_photo %}
+                                                <img src="{{ url_for('static', filename='uploads/' + match.person.primary_photo.photo_path) }}" 
+                                                     class="img-fluid h-100 w-100" 
+                                                     style="object-fit: cover;"
+                                                     alt="{{ match.person.name }}">
+                                            {% else %}
+                                                <div class="bg-light text-center py-5 h-100">
+                                                    <i class="fas fa-user fa-3x text-muted"></i>
+                                                </div>
+                                            {% endif %}
+                                            {% if auto_found and loop.first %}
+                                            <span class="badge bg-success badge-found">
+                                                <i class="fas fa-check-circle me-1"></i>Automatically Found
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <div class="match-details">
+                                            <h5 class="card-title mb-3">
+                                                {{ match.person.name }}
+                                                <span class="text-muted ms-2">(Age: {{ match.person.age }})</span>
+                                            </h5>
+                                            
+                                            <div class="match-stats">
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <strong><i class="fas fa-calendar me-2"></i>Last Seen:</strong><br>
+                                                        {{ match.person.last_seen.strftime('%Y-%m-%d') }}
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <strong><i class="fas fa-map-marker-alt me-2"></i>Location:</strong><br>
+                                                        {{ match.person.last_seen_location }}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="mb-4">
+                                                <strong>Match Accuracy:</strong>
+                                                {% set accuracy = match.confidence %}
+                                                <div class="progress mt-2">
+                                                    <div class="progress-bar {% if accuracy >= 90 %}bg-success{% elif accuracy >= 70 %}bg-info{% elif accuracy >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                         role="progressbar" 
+                                                         style="width: {{ accuracy }}%;" 
+                                                         aria-valuenow="{{ accuracy }}" 
+                                                         aria-valuemin="0" 
+                                                         aria-valuemax="100">
+                                                        {{ "%.1f"|format(accuracy) }}%
+                                                    </div>
+                                                </div>
+                                                <small class="text-muted mt-1 d-block">
+                                                    {% if accuracy >= 90 %}
+                                                        <i class="fas fa-check-circle text-success"></i> Very High Accuracy Match
+                                                    {% elif accuracy >= 70 %}
+                                                        <i class="fas fa-info-circle text-info"></i> High Accuracy Match
+                                                    {% elif accuracy >= 50 %}
+                                                        <i class="fas fa-exclamation-circle text-warning"></i> Moderate Accuracy Match
+                                                    {% else %}
+                                                        <i class="fas fa-times-circle text-danger"></i> Low Accuracy Match
+                                                    {% endif %}
+                                                </small>
+                                            </div>
+
+                                            <div class="action-buttons">
+                                                <a href="{{ url_for('missing_person_detail', id=match.person.id) }}" 
+                                                   class="btn btn-primary me-2">
+                                                    <i class="fas fa-info-circle me-2"></i>View Details
+                                                </a>
+                                                {% if not auto_found %}
+                                                <form action="{{ url_for('mark_person_found', id=match.person.id) }}" method="POST" class="d-inline">
+                                                    <button type="submit" class="btn btn-success me-2">
+                                                        <i class="fas fa-check-circle me-2"></i>Mark as Found
+                                                    </button>
+                                                </form>
+                                                {% endif %}
+                                                <form action="{{ url_for('contact_found_person', id=match.person.id) }}" method="POST" class="d-inline">
+                                                    <button type="submit" class="btn btn-info">
+                                                        <i class="fas fa-phone me-2"></i>Contact
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contact Information Display -->
+                        <div class="modal fade" id="contactModal{{ match.person.id }}" tabindex="-1" aria-labelledby="contactModalLabel{{ match.person.id }}" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="contactModalLabel{{ match.person.id }}">Contact Information</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="contact-info">
+                                            <p><strong><i class="fas fa-user me-2"></i>Contact Name:</strong><br>
+                                            {{ match.person.contact_name }}</p>
+                                            <p><strong><i class="fas fa-phone me-2"></i>Phone:</strong><br>
+                                            {{ match.person.contact_phone }}</p>
+                                            <p><strong><i class="fas fa-envelope me-2"></i>Email:</strong><br>
+                                            {{ match.person.contact_email }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        <form action="{{ url_for('contact_found_person', id=match.person.id) }}" method="POST">
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-paper-plane me-2"></i>Send Notification
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        <div class="text-center mt-5">
+                            <a href="{{ url_for('match_person') }}" class="btn btn-primary me-2">
+                                <i class="fas fa-camera me-2"></i>Try Another Photo
+                            </a>
+                            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-home me-2"></i>Return to Dashboard
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning text-center border-0 shadow-sm">
+                            <h4 class="mb-2"><i class="fas fa-exclamation-circle me-2"></i>No Match Found</h4>
+                            <p class="mb-0">We couldn't find any matches in our database. Please try again with a different photo or check back later.</p>
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <a href="{{ url_for('match_person') }}" class="btn btn-primary me-2">
+                                <i class="fas fa-camera me-2"></i>Try Again
+                            </a>
+                            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-home me-2"></i>Return Home
+                            </a>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="alert alert-info text-center">
-        <i class="fas fa-info-circle me-2"></i>
-        No matches found. Please try again with a different photo or better lighting.
-    </div>
-    {% endif %}
-
-    <div class="text-center mt-4">
-        <a href="{{ url_for('match_person') }}" class="btn btn-primary">
-            <i class="fas fa-camera me-2"></i>Try Another Photo
-        </a>
-        <a href="{{ url_for('index') }}" class="btn btn-secondary ms-2">
-            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
-        </a>
     </div>
 </div>
 {% endblock %} 

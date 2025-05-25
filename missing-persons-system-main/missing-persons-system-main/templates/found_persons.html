@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}Found Persons{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center mb-5">
+        <div class="col-lg-8 text-center">
+            <h2 class="display-4 fw-bold mb-3 text-gradient">Found Persons</h2>
+            <p class="lead text-muted">View all persons who have been found and reunited with their families.</p>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-5">
+        <div class="col-md-3 mb-4">
+            <div class="card border-0 rounded-4 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h3 class="display-4 fw-bold text-success mb-2">{{ total_found }}</h3>
+                    <p class="text-muted mb-0">Total Found</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card border-0 rounded-4 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h3 class="display-4 fw-bold text-success mb-2">{{ found_today }}</h3>
+                    <p class="text-muted mb-0">Found Today</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card border-0 rounded-4 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h3 class="display-4 fw-bold text-success mb-2">{{ found_this_week }}</h3>
+                    <p class="text-muted mb-0">Found This Week</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card border-0 rounded-4 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h3 class="display-4 fw-bold text-success mb-2">{{ found_this_month }}</h3>
+                    <p class="text-muted mb-0">Found This Month</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card border-0 rounded-4 shadow-sm mb-5">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Age Range</label>
+                    <select name="age_range" class="form-select">
+                        <option value="">All Ages</option>
+                        <option value="0-18" {% if current_filters.age_range == '0-18' %}selected{% endif %}>0-18</option>
+                        <option value="19-30" {% if current_filters.age_range == '19-30' %}selected{% endif %}>19-30</option>
+                        <option value="31-50" {% if current_filters.age_range == '31-50' %}selected{% endif %}>31-50</option>
+                        <option value="51+" {% if current_filters.age_range == '51+' %}selected{% endif %}>51+</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Gender</label>
+                    <select name="gender" class="form-select">
+                        <option value="">All Genders</option>
+                        <option value="M" {% if current_filters.gender == 'M' %}selected{% endif %}>Male</option>
+                        <option value="F" {% if current_filters.gender == 'F' %}selected{% endif %}>Female</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Location</label>
+                    <input type="text" name="location" class="form-control" value="{{ current_filters.location }}" placeholder="Enter location">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Found Date</label>
+                    <input type="date" name="date_found" class="form-control" value="{{ current_filters.date_found }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Sort By</label>
+                    <select name="sort_by" class="form-select">
+                        <option value="date_found" {% if current_filters.sort_by == 'date_found' %}selected{% endif %}>Date Found</option>
+                        <option value="name" {% if current_filters.sort_by == 'name' %}selected{% endif %}>Name</option>
+                        <option value="age" {% if current_filters.sort_by == 'age' %}selected{% endif %}>Age</option>
+                        <option value="missing_since" {% if current_filters.sort_by == 'missing_since' %}selected{% endif %}>Missing Since</option>
+                    </select>
+                </div>
+                <div class="col-12 text-end">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-filter me-2"></i>Apply Filters
+                    </button>
+                    <a href="{{ url_for('found_persons') }}" class="btn btn-outline-secondary ms-2">
+                        <i class="fas fa-times me-2"></i>Clear Filters
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Found Persons List -->
+    <div class="row">
+        {% for person in found_persons %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm border-0 rounded-4">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        {% if person.primary_photo %}
+                        <img src="{{ url_for('static', filename='uploads/' + person.primary_photo.photo_path) }}" 
+                             class="img-fluid rounded-circle" 
+                             style="width: 150px; height: 150px; object-fit: cover;"
+                             alt="{{ person.name }}">
+                        {% else %}
+                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center mx-auto"
+                             style="width: 150px; height: 150px;">
+                            <i class="fas fa-user fa-4x text-muted"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <h5 class="card-title text-center mb-3">{{ person.name }}</h5>
+                    
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-birthday-cake text-success me-2"></i>
+                                <span>Age: {{ person.age }}</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-venus-mars text-success me-2"></i>
+                                <span>Gender: {{ person.gender }}</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-map-marker-alt text-success me-2"></i>
+                                <span>Last Seen: {{ person.last_seen_location }}</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-calendar text-success me-2"></i>
+                                <span>Missing Since: {{ person.last_seen.strftime('%Y-%m-%d') }}</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <span>Found On: {{ person.date_found.strftime('%Y-%m-%d') }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <h6 class="text-muted mb-2">Description:</h6>
+                        <p class="card-text">{{ person.description }}</p>
+                    </div>
+
+                    <div class="mt-4">
+                        <h6 class="text-muted mb-2">Contact Information:</h6>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-user-tie text-success me-2"></i>
+                            <span>{{ person.contact_name }}</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-phone text-success me-2"></i>
+                            <span>{{ person.contact_phone }}</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-envelope text-success me-2"></i>
+                            <span>{{ person.contact_email }}</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 text-center">
+                        <a href="{{ url_for('missing_person_detail', id=person.id) }}" 
+                           class="btn btn-outline-success">
+                            <i class="fas fa-info-circle me-2"></i>View Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if not found_persons %}
+    <div class="text-center py-5">
+        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+        <h4 class="text-muted">No found persons match your criteria</h4>
+        <p class="text-muted">Try adjusting your filters or <a href="{{ url_for('found_persons') }}">view all found persons</a></p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.text-gradient {
+    background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+}
+</style>
+{% endblock %} 

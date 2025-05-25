@@ -47,11 +47,6 @@
                             </div>
                             <p class="mt-2">Processing image and searching for matches...</p>
                         </div>
-
-                        <div id="errorMessage" class="alert alert-danger mt-3" style="display: none;">
-                            <i class="fas fa-exclamation-circle me-2"></i>
-                            <span id="errorText"></span>
-                        </div>
                     </div>
                     
                     <div class="alert alert-info">
@@ -83,23 +78,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const matchForm = document.getElementById('matchForm');
     const photoData = document.getElementById('photoData');
     const processingStatus = document.getElementById('processingStatus');
-    const errorMessage = document.getElementById('errorMessage');
-    const errorText = document.getElementById('errorText');
     let stream = null;
 
     // Set canvas size to match video
     function setCanvasSize() {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-    }
-
-    // Show error message
-    function showError(message) {
-        errorText.textContent = message;
-        errorMessage.style.display = 'block';
-        setTimeout(() => {
-            errorMessage.style.display = 'none';
-        }, 5000);
     }
 
     // Start camera
@@ -117,35 +101,28 @@ document.addEventListener('DOMContentLoaded', function() {
             setCanvasSize();
             startButton.disabled = true;
             captureButton.disabled = false;
-            errorMessage.style.display = 'none';
         } catch (err) {
             console.error('Error accessing camera:', err);
-            showError('Error accessing camera. Please make sure you have granted camera permissions.');
+            alert('Error accessing camera. Please make sure you have granted camera permissions.');
         }
     });
 
     // Capture photo
     captureButton.addEventListener('click', function() {
-        try {
-            const context = canvas.getContext('2d');
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            // Convert to base64
-            const imageData = canvas.toDataURL('image/jpeg', 0.8);
-            photoPreview.src = imageData;
-            photoData.value = imageData;
-            
-            // Show captured photo and hide video
-            video.style.display = 'none';
-            capturedPhoto.style.display = 'block';
-            matchForm.style.display = 'block';
-            captureButton.style.display = 'none';
-            retakeButton.style.display = 'inline-block';
-            errorMessage.style.display = 'none';
-        } catch (err) {
-            console.error('Error capturing photo:', err);
-            showError('Error capturing photo. Please try again.');
-        }
+        const context = canvas.getContext('2d');
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Convert to base64
+        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        photoPreview.src = imageData;
+        photoData.value = imageData;
+        
+        // Show captured photo and hide video
+        video.style.display = 'none';
+        capturedPhoto.style.display = 'block';
+        matchForm.style.display = 'block';
+        captureButton.style.display = 'none';
+        retakeButton.style.display = 'inline-block';
     });
 
     // Retake photo
@@ -156,21 +133,19 @@ document.addEventListener('DOMContentLoaded', function() {
         captureButton.style.display = 'inline-block';
         retakeButton.style.display = 'none';
         processingStatus.style.display = 'none';
-        errorMessage.style.display = 'none';
     });
 
     // Handle form submission
     matchForm.addEventListener('submit', function(e) {
         if (!photoData.value) {
             e.preventDefault();
-            showError('Please capture a photo first.');
+            alert('Please capture a photo first.');
             return;
         }
         
         // Show processing status
         processingStatus.style.display = 'block';
         matchForm.querySelector('button').disabled = true;
-        errorMessage.style.display = 'none';
     });
 
     // Clean up when leaving page

@@ -1,0 +1,450 @@
+{% extends "base.html" %}
+
+{% block title %}System Report{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="mb-1">System Report</h4>
+                        <p class="text-muted mb-0">Overview of missing persons system</p>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-primary" onclick="exportToExcel()">
+                            <i class="fas fa-file-excel me-2"></i>Export to Excel
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="exportToPDF()">
+                            <i class="fas fa-file-pdf me-2"></i>Export to PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100 border-start border-5 border-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Active Cases</h6>
+                            <h3 class="mb-0">{{ active_cases }}</h3>
+                        </div>
+                        <div class="bg-primary bg-opacity-10 p-3 rounded">
+                            <i class="fas fa-search fa-2x text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100 border-start border-5 border-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Found Today</h6>
+                            <h3 class="mb-0">{{ today_found }}</h3>
+                        </div>
+                        <div class="bg-success bg-opacity-10 p-3 rounded">
+                            <i class="fas fa-user-check fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100 border-start border-5 border-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">New Registrations</h6>
+                            <h3 class="mb-0">{{ today_registered }}</h3>
+                        </div>
+                        <div class="bg-info bg-opacity-10 p-3 rounded">
+                            <i class="fas fa-user-plus fa-2x text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100 border-start border-5 border-warning">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Response Time</h6>
+                            <h3 class="mb-0">{{ avg_response_time|default('N/A') }}h</h3>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 p-3 rounded">
+                            <i class="fas fa-clock fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">This Month</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="text-muted mb-0">Missing Cases</h6>
+                                    <span class="badge bg-danger">{{ this_month_missing }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">Daily Average</small>
+                                    <small class="text-primary">{{ daily_avg_missing }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="text-muted mb-0">Found Cases</h6>
+                                    <span class="badge bg-success">{{ this_month_found }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">Daily Average</small>
+                                    <small class="text-primary">{{ daily_avg_found }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">Last Month Comparison</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="text-muted mb-0">Missing Cases</h6>
+                                    <span class="badge bg-danger">{{ last_month_missing }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">Trend</small>
+                                    <small class="text-{{ 'success' if missing_trend < 0 else 'danger' }}">
+                                        {{ missing_trend }}%
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="text-muted mb-0">Found Cases</h6>
+                                    <span class="badge bg-success">{{ last_month_found }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">Trend</small>
+                                    <small class="text-{{ 'success' if found_trend > 0 else 'danger' }}">
+                                        {{ found_trend }}%
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recently Found People -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Recently Found People</h5>
+                    <div class="d-flex gap-2">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <input type="text" class="form-control" id="foundSearch" placeholder="Search...">
+                        </div>
+                        <select class="form-select" 
+                                id="foundSort" 
+                                style="width: auto;">
+                            <option value="date">Sort by Date</option>
+                            <option value="name">Sort by Name</option>
+                            <option value="location">Sort by Location</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="foundTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Age</th>
+                                    <th>Found Date</th>
+                                    <th>Location</th>
+                                    <th>Contact Person</th>
+                                    <th>Contact Phone</th>
+                                    <th>Time to Find</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for person in recently_found %}
+                                <tr>
+                                    <td>{{ person.name }}</td>
+                                    <td>{{ person.age }}</td>
+                                    <td>{{ person.date_found.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ person.last_seen_location }}</td>
+                                    <td>{{ person.contact_name }}</td>
+                                    <td>{{ person.contact_phone }}</td>
+                                    <td>{{ ((person.date_found - person.last_seen).total_seconds() / 3600)|round(1) }} hours</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewDetails({{ person.id }})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's New Registrations -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Today's New Registrations</h5>
+                    <div class="d-flex gap-2">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <input type="text" class="form-control" id="regSearch" placeholder="Search...">
+                        </div>
+                        <select class="form-select" 
+                                id="regSort" 
+                                style="width: auto;">
+                            <option value="time">Sort by Time</option>
+                            <option value="name">Sort by Name</option>
+                            <option value="age">Sort by Age</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="regTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Age</th>
+                                    <th>Gender</th>
+                                    <th>Last Seen</th>
+                                    <th>Location</th>
+                                    <th>Contact Person</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for person in today_registrations %}
+                                <tr>
+                                    <td>{{ person.name }}</td>
+                                    <td>{{ person.age }}</td>
+                                    <td>{{ person.gender }}</td>
+                                    <td>{{ person.last_seen.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ person.last_seen_location }}</td>
+                                    <td>{{ person.contact_name }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if person.is_found else 'warning' }}">
+                                            {{ 'Found' if person.is_found else 'Missing' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewDetails({{ person.id }})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+// Table Search Functions
+document.getElementById('foundSearch').addEventListener('input', function(e) {
+    const searchText = e.target.value.toLowerCase();
+    const table = document.getElementById('foundTable');
+    filterTable(table, searchText);
+});
+
+document.getElementById('regSearch').addEventListener('input', function(e) {
+    const searchText = e.target.value.toLowerCase();
+    const table = document.getElementById('regTable');
+    filterTable(table, searchText);
+});
+
+function filterTable(table, searchText) {
+    const rows = table.getElementsByTagName('tr');
+    for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        const cells = row.getElementsByTagName('td');
+        let found = false;
+        
+        for (let cell of cells) {
+            if (cell.textContent.toLowerCase().includes(searchText)) {
+                found = true;
+                break;
+            }
+        }
+        
+        row.style.display = found ? '' : 'none';
+    }
+}
+
+// Export Functions
+function exportToExcel() {
+    const wb = XLSX.utils.book_new();
+    
+    // Export Found People
+    const foundTable = document.getElementById('foundTable');
+    const foundWS = XLSX.utils.table_to_sheet(foundTable);
+    XLSX.utils.book_append_sheet(wb, foundWS, "Found People");
+    
+    // Export Registrations
+    const regTable = document.getElementById('regTable');
+    const regWS = XLSX.utils.table_to_sheet(regTable);
+    XLSX.utils.book_append_sheet(wb, regWS, "New Registrations");
+    
+    // Add Summary Sheet
+    const summaryWS = XLSX.utils.aoa_to_sheet([
+        ["Missing Persons System Report"],
+        ["Generated on: " + new Date().toLocaleDateString()],
+        [],
+        ["Summary Statistics"],
+        ["Total Found Today", {{ today_found }}],
+        ["Total Missing Today", {{ today_missing }}],
+        ["Active Cases", {{ active_cases }}],
+        ["Monthly Resolution Rate", {{ (this_month_found / (this_month_missing + this_month_found) * 100)|round(1) if (this_month_missing + this_month_found) > 0 else 0 }} + "%"],
+        [],
+        ["Monthly Statistics"],
+        ["This Month Missing", {{ this_month_missing }}],
+        ["This Month Found", {{ this_month_found }}],
+        ["Last Month Missing", {{ last_month_missing }}],
+        ["Last Month Found", {{ last_month_found }}]
+    ]);
+    XLSX.utils.book_append_sheet(wb, summaryWS, "Summary");
+    
+    // Save the file
+    XLSX.writeFile(wb, "missing_persons_report.xlsx");
+}
+
+function exportToPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(20);
+    doc.text("Missing Persons Report", 14, 15);
+    
+    // Add date
+    doc.setFontSize(12);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 25);
+    
+    // Add summary statistics
+    doc.setFontSize(14);
+    doc.text("Summary Statistics", 14, 40);
+    doc.setFontSize(12);
+    doc.text(`Total Found Today: ${ {{ today_found }} }`, 14, 50);
+    doc.text(`Total Missing Today: ${ {{ today_missing }} }`, 14, 60);
+    doc.text(`Active Cases: ${ {{ active_cases }} }`, 14, 70);
+    doc.text(`Monthly Resolution Rate: ${ {{ (this_month_found / (this_month_missing + this_month_found) * 100)|round(1) if (this_month_missing + this_month_found) > 0 else 0 }} }%`, 14, 80);
+    
+    // Export tables
+    doc.autoTable({ html: '#foundTable', startY: 90 });
+    doc.autoTable({ html: '#regTable', startY: doc.lastAutoTable.finalY + 20 });
+    
+    // Save the file
+    doc.save("missing_persons_report.pdf");
+}
+
+// View Details Function
+function viewDetails(personId) {
+    window.location.href = `/missing_person/${personId}`;
+}
+
+// Table Sorting
+document.getElementById('foundSort').addEventListener('change', function(e) {
+    sortTable('foundTable', e.target.value);
+});
+
+document.getElementById('regSort').addEventListener('change', function(e) {
+    sortTable('regTable', e.target.value);
+});
+
+function sortTable(tableId, sortBy) {
+    const table = document.getElementById(tableId);
+    const tbody = table.getElementsByTagName('tbody')[0];
+    const rows = Array.from(tbody.getElementsByTagName('tr'));
+    
+    rows.sort((a, b) => {
+        const aValue = a.cells[getColumnIndex(sortBy)].textContent;
+        const bValue = b.cells[getColumnIndex(sortBy)].textContent;
+        
+        if (sortBy === 'date' || sortBy === 'time') {
+            return new Date(bValue) - new Date(aValue);
+        } else if (sortBy === 'age') {
+            return parseInt(aValue) - parseInt(bValue);
+        } else {
+            return aValue.localeCompare(bValue);
+        }
+    });
+    
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+function getColumnIndex(sortBy) {
+    const columnMap = {
+        'date': 2,
+        'name': 0,
+        'location': 3,
+        'time': 3,
+        'age': 1
+    };
+    return columnMap[sortBy] || 0;
+}
+</script>
+{% endblock %}
+{% endblock %} 

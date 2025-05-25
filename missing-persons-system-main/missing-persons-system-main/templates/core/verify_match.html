@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="text-center">Verify Match</h2>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4>Missing Person</h4>
+                            <img src="{{ match_report.missing_person.photo.url }}" 
+                                 alt="{{ match_report.missing_person.name }}" 
+                                 class="img-fluid rounded mb-3">
+                            <p><strong>Name:</strong> {{ match_report.missing_person.name }}</p>
+                            <p><strong>Age:</strong> {{ match_report.missing_person.age }}</p>
+                            <p><strong>Last Seen:</strong> {{ match_report.missing_person.last_seen }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h4>Match Report</h4>
+                            <img src="{{ match_report.photo.url }}" 
+                                 alt="Match Report Photo" 
+                                 class="img-fluid rounded mb-3">
+                            <p><strong>Location:</strong> {{ match_report.location }}</p>
+                            <p><strong>Date:</strong> {{ match_report.timestamp }}</p>
+                            <p><strong>Confidence Score:</strong> {{ match_report.confidence_score|floatformat:2 }}%</p>
+                            <p><strong>Reported By:</strong> {{ match_report.reported_by }}</p>
+                        </div>
+                    </div>
+
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="is_verified" id="verify_true" value="true">
+                                <label class="form-check-label" for="verify_true">
+                                    This is a match
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="is_verified" id="verify_false" value="false">
+                                <label class="form-check-label" for="verify_false">
+                                    This is not a match
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="verification_notes" class="form-label">Verification Notes</label>
+                            <textarea class="form-control" id="verification_notes" name="verification_notes" rows="3"></textarea>
+                        </div>
+
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg">Submit Verification</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

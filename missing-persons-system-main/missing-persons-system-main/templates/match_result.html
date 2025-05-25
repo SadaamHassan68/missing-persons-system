@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Match Results{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="text-center mb-4">Match Results</h1>
+
+    {% if matches %}
+    <div class="row">
+        {% for match in matches %}
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            {% if match.person.primary_photo %}
+                            <img src="{{ url_for('static', filename='uploads/' + match.person.primary_photo.photo_path) }}" 
+                                 class="img-fluid rounded" alt="{{ match.person.name }}">
+                            {% else %}
+                            <div class="bg-light text-center py-5 rounded">
+                                <i class="fas fa-user fa-3x text-muted"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-8">
+                            <h3 class="card-title">{{ match.person.name }}</h3>
+                            <div class="mb-3">
+                                <div class="progress">
+                                    <div class="progress-bar bg-success" role="progressbar" 
+                                         style="width: {{ match.confidence }}%"
+                                         aria-valuenow="{{ match.confidence }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                        {{ "%.1f"|format(match.confidence) }}% Match
+                                    </div>
+                                </div>
+                            </div>
+                            <p><strong>Age:</strong> {{ match.person.age }}</p>
+                            <p><strong>Last Seen:</strong> {{ match.person.last_seen.strftime('%Y-%m-%d %H:%M') }}</p>
+                            <p><strong>Location:</strong> {{ match.person.last_seen_location }}</p>
+                            
+                            <div class="mt-3">
+                                <h5>Quality Metrics:</h5>
+                                <ul class="list-unstyled">
+                                    <li>Base Confidence: {{ "%.1f"|format(match.quality_metrics.base_confidence) }}%</li>
+                                    <li>Size Boost: {{ "%.1f"|format(match.quality_metrics.size_boost) }}%</li>
+                                    <li>Landmarks Quality: {{ "%.1f"|format(match.quality_metrics.landmarks_quality) }}%</li>
+                                    <li>Face Angle Quality: {{ "%.1f"|format(match.quality_metrics.face_angle_quality) }}%</li>
+                                </ul>
+                            </div>
+
+                            <div class="mt-3">
+                                <h5>Contact Information:</h5>
+                                <p><strong>Name:</strong> {{ match.person.contact_name }}</p>
+                                <p><strong>Phone:</strong> {{ match.person.contact_phone }}</p>
+                                <p><strong>Email:</strong> {{ match.person.contact_email }}</p>
+                            </div>
+
+                            <div class="mt-3">
+                                <a href="{{ url_for('missing_person_detail', id=match.person.id) }}" 
+                                   class="btn btn-primary">
+                                    <i class="fas fa-info-circle me-2"></i>View Full Details
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info text-center">
+        <i class="fas fa-info-circle me-2"></i>
+        No matches found. Please try again with a different photo or better lighting.
+    </div>
+    {% endif %}
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('match_person') }}" class="btn btn-primary">
+            <i class="fas fa-camera me-2"></i>Try Another Photo
+        </a>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary ms-2">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %} 
