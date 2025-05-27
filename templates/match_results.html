@@ -17,9 +17,7 @@
                         </div>
                         
                         <div class="text-center mb-4">
-                            <img src="{{ url_for('static', filename='uploads/' + photo_path) }}" 
-                                 class="img-fluid rounded mb-3" 
-                                 alt="Uploaded Photo">
+                            <img src="{{ url_for('static', filename='uploads/' + photo_path) }}" class="img-fluid rounded mb-3" alt="Uploaded Photo">
                             <p class="text-muted">Uploaded Photo</p>
                         </div>
 
@@ -32,8 +30,7 @@
                                     <div class="col-md-4">
                                         {% if match.person.primary_photo %}
                                             <img src="{{ url_for('static', filename='uploads/' + match.person.primary_photo.photo_path) }}" 
-                                                 class="img-fluid rounded" 
-                                                 alt="{{ match.person.name }}">
+                                                 class="img-fluid rounded" alt="{{ match.person.name }}">
                                         {% else %}
                                             <div class="bg-light text-center py-5 rounded">
                                                 <i class="fas fa-user fa-3x text-muted"></i>
@@ -73,13 +70,10 @@
                                             </div>
                                         </p>
                                         <div class="mt-3">
-                                            <a href="{{ url_for('missing_person_detail', id=match.person.id) }}" class="btn btn-primary">
-                                                <i class="fas fa-info-circle me-2"></i>View Details
-                                            </a>
-                                            <button type="button" 
-                                                    class="btn btn-success ms-2" 
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#contactModal{{ match.person.id }}">
+                                        <a href="{{ url_for('missing_person_detail', id=match.person.id) }}" class="btn btn-primary">
+                                            <i class="fas fa-info-circle me-2"></i>View Details
+                                        </a>
+                                            <button type="button" class="btn btn-success ms-2" data-bs-toggle="modal" data-bs-target="#contactModal{{ match.person.id }}">
                                                 <i class="fas fa-phone me-2"></i>Contact
                                             </button>
                                         </div>
@@ -89,17 +83,12 @@
                         </div>
 
                         <!-- Contact Modal -->
-                        <div class="modal fade" 
-                             id="contactModal{{ match.person.id }}" 
-                             tabindex="-1">
+                        <div class="modal fade" id="contactModal{{ match.person.id }}" tabindex="-1">
                             <div class="modal-dialog">
                                 <div class="modal-content">
                                     <div class="modal-header">
                                         <h5 class="modal-title">Contact Information</h5>
-                                        <button type="button" 
-                                                class="btn-close" 
-                                                data-bs-dismiss="modal">
-                                        </button>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                     </div>
                                     <div class="modal-body">
                                         <p><strong>Contact Name:</strong> {{ match.person.contact_name }}</p>
