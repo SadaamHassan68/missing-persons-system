@@ -9,5 +9,5 @@ Pillow==10.2.0
 mysqlclient==2.2.4
 PyMySQL==1.1.0
 python-dotenv==1.0.1
-Werkzeug==3.0.1 
+Werkzeug==3.0.1
 #test
