@@ -295,3 +295,4 @@ python app.py
 - Python 3.6 or higher
 - Webcam
 - Sufficient lighting for face detection
+#make
