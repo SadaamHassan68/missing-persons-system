@@ -4,266 +4,655 @@
 
 {% block content %}
 <style>
-    .match-card {
-        transition: transform 0.2s, box-shadow 0.2s;
-        border: none;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    .match-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: #ffffff;
+        border-radius: 1rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
     }
+
+    .match-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f0f0f0;
+    }
+
+    .match-header h2 {
+        color: #2c3e50;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .match-header p {
+        color: #7f8c8d;
+        font-size: 1.1rem;
+    }
+
+    .auto-found-alert {
+        background: #d4edda;
+        color: #155724;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 2rem;
+        text-align: center;
+        border: 1px solid #c3e6cb;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.05);
+    }
+
+    .auto-found-alert h3 {
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .auto-found-alert h3 i {
+        font-size: 1.5rem;
+    }
+
+    .auto-found-alert p {
+        margin-bottom: 1.5rem;
+        font-size: 1.1rem;
+    }
+
+    .match-card {
+        background: #ffffff;
+        border-radius: 1rem;
+        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: 1px solid #e9ecef;
+    }
+
     .match-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
     }
-    .match-card.auto-found {
-        border-left: 4px solid #28a745;
+
+    .match-card-header {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        padding: 1.5rem;
+        position: relative;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
-    .progress {
-        height: 25px;
-        border-radius: 12px;
-        background-color: #f0f0f0;
+
+    .match-card-header h3 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
     }
-    .progress-bar {
-        border-radius: 12px;
-        transition: width 1s ease-in-out;
+
+    .match-card-header h3 i {
+        font-size: 1.2rem;
+        opacity: 0.9;
     }
+
+    .match-status {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .match-status i {
+        font-size: 1rem;
+    }
+
+    .match-status.high {
+        background: rgba(39, 174, 96, 0.2);
+    }
+
+    .match-status.medium {
+        background: rgba(241, 196, 15, 0.2);
+    }
+
+    .match-status.low {
+        background: rgba(231, 76, 60, 0.2);
+    }
+
+    .match-status.auto-found {
+        background: rgba(46, 204, 113, 0.2);
+    }
+
+    .match-content {
+        padding: 1.5rem;
+    }
+
+    .photo-section {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+
     .photo-container {
         position: relative;
+        border-radius: 0.5rem;
         overflow: hidden;
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+        aspect-ratio: 4/3;
     }
+
     .photo-container img {
-        transition: transform 0.3s;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
     }
+
     .photo-container:hover img {
         transform: scale(1.05);
     }
-    .badge-found {
+
+    .photo-label {
         position: absolute;
-        top: 10px;
-        right: 10px;
-        padding: 8px 12px;
-        border-radius: 20px;
-        font-weight: 500;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 0.75rem;
+        text-align: center;
+        font-size: 0.9rem;
     }
-    .match-details {
-        padding: 20px;
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
     }
-    .match-stats {
+
+    .info-card {
         background: #f8f9fa;
-        border-radius: 10px;
-        padding: 15px;
-        margin: 15px 0;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        border: 1px solid #e9ecef;
     }
-    .action-buttons {
-        margin-top: 20px;
+
+    .info-card h4 {
+        color: #2c3e50;
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
-    .action-buttons .btn {
-        padding: 10px 20px;
-        border-radius: 25px;
-        font-weight: 500;
-        transition: all 0.3s;
+
+    .info-card h4 i {
+        color: #3498db;
     }
-    .action-buttons .btn:hover {
+
+    .info-item {
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .info-item:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+
+    .info-item strong {
+        color: #34495e;
+        display: block;
+        margin-bottom: 0.25rem;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .info-item span {
+        color: #2c3e50;
+        font-size: 1.1rem;
+    }
+
+    .accuracy-section {
+        background: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border: 1px solid #e9ecef;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .accuracy-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #3498db, #2980b9);
+    }
+
+    .accuracy-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .accuracy-header h4 {
+        margin: 0;
+        color: #2c3e50;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .accuracy-header h4 i {
+        color: #3498db;
+    }
+
+    .accuracy-score {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #27ae60;
+        background: rgba(39, 174, 96, 0.1);
+        padding: 0.5rem 1.25rem;
+        border-radius: 2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .accuracy-score i {
+        font-size: 1rem;
+    }
+
+    .progress {
+        height: 1rem;
+        background-color: #ecf0f1;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+
+    .progress-bar {
+        height: 100%;
+        border-radius: 0.5rem;
+        transition: width 1s ease-in-out;
+    }
+
+    .progress-bar.high {
+        background: linear-gradient(90deg, #27ae60, #2ecc71);
+    }
+
+    .progress-bar.medium {
+        background: linear-gradient(90deg, #f39c12, #f1c40f);
+    }
+
+    .progress-bar.low {
+        background: linear-gradient(90deg, #e74c3c, #c0392b);
+    }
+
+    .progress-bar-width-80 { width: 80%; }
+    .progress-bar-width-70 { width: 70%; }
+    .progress-bar-width-60 { width: 60%; }
+    .progress-bar-width-50 { width: 50%; }
+    .progress-bar-width-40 { width: 40%; }
+    .progress-bar-width-30 { width: 30%; }
+    .progress-bar-width-20 { width: 20%; }
+    .progress-bar-width-10 { width: 10%; }
+
+    .contact-section {
+        background: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border: 1px solid #e9ecef;
+        position: relative;
+    }
+
+    .contact-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #00b894, #00cec9);
+    }
+
+    .contact-section h4 {
+        color: #2c3e50;
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .contact-section h4 i {
+        color: #3498db;
+    }
+
+    .contact-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+
+    .contact-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem 1.25rem;
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .contact-item:hover {
         transform: translateY(-2px);
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
     }
-    .auto-found-alert {
-        background-color: #d4edda;
-        border-color: #c3e6cb;
-        color: #155724;
-        padding: 15px;
-        border-radius: 10px;
-        margin-bottom: 20px;
+
+    .contact-item i {
+        color: #3498db;
+        font-size: 1.2rem;
+        width: 1.5rem;
+        text-align: center;
+    }
+
+    .contact-item span {
+        color: #2c3e50;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-top: 2rem;
+    }
+
+    .action-buttons.center {
+        justify-content: center;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-width: 150px;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .btn:hover::after {
+        opacity: 1;
+    }
+
+    .btn i {
+        font-size: 1.1rem;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #27ae60, #2ecc71);
+        color: white;
+    }
+
+    .btn-info {
+        background: linear-gradient(135deg, #00b894, #00cec9);
+        color: white;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+    }
+
+    .no-matches {
+        text-align: center;
+        padding: 3rem;
+        background: #f8f9fa;
+        border-radius: 1rem;
+        margin: 2rem 0;
+        border: 1px solid #e9ecef;
+    }
+
+    .no-matches i {
+        font-size: 4rem;
+        color: #95a5a6;
+        margin-bottom: 1rem;
+    }
+
+    .no-matches h3 {
+        color: #2c3e50;
+        margin-bottom: 1rem;
+    }
+
+    .no-matches p {
+        color: #7f8c8d;
+        margin-bottom: 2rem;
+    }
+
+    .no-matches ul {
+        list-style-type: none;
+        padding: 0;
+        display: inline-block;
+        text-align: left;
+        background: white;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.05);
+    }
+
+    .no-matches li {
+        margin-bottom: 0.75rem;
+        color: #7f8c8d;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .no-matches li i {
+        font-size: 1rem;
+        color: #3498db;
     }
 </style>
 
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-10">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-4">
-                    <h2 class="card-title text-center mb-4">Match Results</h2>
-                    
-                    {% if matches %}
-                        {% if auto_found %}
-                        <div class="auto-found-alert text-center">
-                            <h4 class="mb-2"><i class="fas fa-check-circle me-2"></i>High Confidence Match Found!</h4>
-                            <p class="mb-0">A person has been automatically marked as found due to high confidence match. Their contact has been notified.</p>
-                            <div class="mt-3">
-                                <a href="{{ url_for('found_persons') }}" class="btn btn-success">
-                                    <i class="fas fa-list me-2"></i>View Found Persons
-                                </a>
-                            </div>
-                        </div>
+<div class="match-container">
+    {% if matches %}
+        {% if auto_found %}
+            <div class="auto-found-alert">
+                <h3><i class="fas fa-check-circle"></i> High Confidence Match Found!</h3>
+                <p>A person has been automatically marked as found due to high confidence match. Their contact has been notified.</p>
+                <a href="{{ url_for('found_persons') }}" class="btn btn-primary">
+                    <i class="fas fa-list"></i>
+                    View Found Persons
+                </a>
+            </div>
+        {% else %}
+            <div class="match-header">
+                <h2>Match Found!</h2>
+                <p>We found {{ matches|length }} potential match(es) in our database.</p>
+            </div>
+        {% endif %}
+
+        {% for match in matches %}
+            <div class="match-card">
+                <div class="match-card-header">
+                    <h3><i class="fas fa-user"></i> {{ match.person.name }}</h3>
+                    <div class="match-status {% if auto_found and loop.first %}auto-found{% elif match.confidence >= 90 %}high{% elif match.confidence >= 70 %}medium{% else %}low{% endif %}">
+                        {% if auto_found and loop.first %}
+                            <i class="fas fa-check-circle"></i> Automatically Found
                         {% else %}
-                        <div class="alert alert-info text-center mb-4 border-0 shadow-sm">
-                            <h4 class="mb-2"><i class="fas fa-info-circle me-2"></i>Match Found!</h4>
-                            <p class="mb-0">We found {{ matches|length }} potential match(es) in our database.</p>
-                        </div>
+                            {% set accuracy = match.confidence %}
+                            {% if accuracy >= 90 %}
+                                <i class="fas fa-star"></i> Very High Accuracy Match
+                            {% elif accuracy >= 70 %}
+                                <i class="fas fa-thumbs-up"></i> High Accuracy Match
+                            {% elif accuracy >= 50 %}
+                                <i class="fas fa-check"></i> Moderate Accuracy Match
+                            {% else %}
+                                <i class="fas fa-info-circle"></i> Low Accuracy Match
+                            {% endif %}
                         {% endif %}
-                        
-                        <div class="text-center mb-5">
-                            <div class="photo-container d-inline-block">
-                                <img src="{{ url_for('static', filename='uploads/' + uploaded_image) }}" 
-                                     class="img-fluid rounded" 
-                                     style="max-height: 300px; object-fit: cover;"
-                                     alt="Uploaded Photo">
-                            </div>
-                            <p class="text-muted mt-2">Uploaded Photo</p>
+                    </div>
+                </div>
+
+                <div class="match-content">
+                    <div class="photo-section">
+                        <div class="photo-container">
+                            <img src="{{ url_for('static', filename='uploads/' + uploaded_image) }}" alt="Uploaded Photo">
+                            <div class="photo-label">Uploaded Photo</div>
                         </div>
+                        {% if match.person.primary_photo %}
+                            <div class="photo-container">
+                                <img src="{{ url_for('static', filename='uploads/' + match.person.primary_photo.photo_path) }}" alt="Reference Photo">
+                                <div class="photo-label">Reference Photo</div>
+                            </div>
+                        {% endif %}
+                    </div>
 
-                        <h4 class="text-center mb-4">Potential Matches</h4>
-                        
-                        {% for match in matches %}
-                        <div class="card match-card mb-4 {% if auto_found and loop.first %}auto-found{% endif %}">
-                            <div class="card-body p-0">
-                                <div class="row g-0">
-                                    <div class="col-md-4">
-                                        <div class="photo-container h-100">
-                                            {% if match.person.primary_photo %}
-                                                <img src="{{ url_for('static', filename='uploads/' + match.person.primary_photo.photo_path) }}" 
-                                                     class="img-fluid h-100 w-100" 
-                                                     style="object-fit: cover;"
-                                                     alt="{{ match.person.name }}">
-                                            {% else %}
-                                                <div class="bg-light text-center py-5 h-100">
-                                                    <i class="fas fa-user fa-3x text-muted"></i>
-                                                </div>
-                                            {% endif %}
-                                            {% if auto_found and loop.first %}
-                                            <span class="badge bg-success badge-found">
-                                                <i class="fas fa-check-circle me-1"></i>Automatically Found
-                                            </span>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    <div class="col-md-8">
-                                        <div class="match-details">
-                                            <h5 class="card-title mb-3">
-                                                {{ match.person.name }}
-                                                <span class="text-muted ms-2">(Age: {{ match.person.age }})</span>
-                                            </h5>
-                                            
-                                            <div class="match-stats">
-                                                <div class="row">
-                                                    <div class="col-md-6 mb-3">
-                                                        <strong><i class="fas fa-calendar me-2"></i>Last Seen:</strong><br>
-                                                        {{ match.person.last_seen.strftime('%Y-%m-%d') }}
-                                                    </div>
-                                                    <div class="col-md-6 mb-3">
-                                                        <strong><i class="fas fa-map-marker-alt me-2"></i>Location:</strong><br>
-                                                        {{ match.person.last_seen_location }}
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div class="mb-4">
-                                                <strong>Match Accuracy:</strong>
-                                                {% set accuracy = match.confidence %}
-                                                <div class="progress mt-2">
-                                                    <div class="progress-bar {% if accuracy >= 90 %}bg-success{% elif accuracy >= 70 %}bg-info{% elif accuracy >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
-                                                         role="progressbar" 
-                                                         style="width: {{ accuracy }}%;" 
-                                                         aria-valuenow="{{ accuracy }}" 
-                                                         aria-valuemin="0" 
-                                                         aria-valuemax="100">
-                                                        {{ "%.1f"|format(accuracy) }}%
-                                                    </div>
-                                                </div>
-                                                <small class="text-muted mt-1 d-block">
-                                                    {% if accuracy >= 90 %}
-                                                        <i class="fas fa-check-circle text-success"></i> Very High Accuracy Match
-                                                    {% elif accuracy >= 70 %}
-                                                        <i class="fas fa-info-circle text-info"></i> High Accuracy Match
-                                                    {% elif accuracy >= 50 %}
-                                                        <i class="fas fa-exclamation-circle text-warning"></i> Moderate Accuracy Match
-                                                    {% else %}
-                                                        <i class="fas fa-times-circle text-danger"></i> Low Accuracy Match
-                                                    {% endif %}
-                                                </small>
-                                            </div>
-
-                                            <div class="action-buttons">
-                                                <a href="{{ url_for('missing_person_detail', id=match.person.id) }}" 
-                                                   class="btn btn-primary me-2">
-                                                    <i class="fas fa-info-circle me-2"></i>View Details
-                                                </a>
-                                                {% if not auto_found %}
-                                                <form action="{{ url_for('mark_person_found', id=match.person.id) }}" method="POST" class="d-inline">
-                                                    <button type="submit" class="btn btn-success me-2">
-                                                        <i class="fas fa-check-circle me-2"></i>Mark as Found
-                                                    </button>
-                                                </form>
-                                                {% endif %}
-                                                <form action="{{ url_for('contact_found_person', id=match.person.id) }}" method="POST" class="d-inline">
-                                                    <button type="submit" class="btn btn-info">
-                                                        <i class="fas fa-phone me-2"></i>Contact
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <h4><i class="fas fa-user"></i> Basic Information</h4>
+                            <div class="info-item">
+                                <strong>Age</strong>
+                                <span>{{ match.person.age }} years</span>
+                            </div>
+                            <div class="info-item">
+                                <strong>Last Seen</strong>
+                                <span>{{ match.person.last_seen.strftime('%Y-%m-%d') }}</span>
+                            </div>
+                            <div class="info-item">
+                                <strong>Location</strong>
+                                <span>{{ match.person.last_seen_location }}</span>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Contact Information Display -->
-                        <div class="modal fade" id="contactModal{{ match.person.id }}" tabindex="-1" aria-labelledby="contactModalLabel{{ match.person.id }}" aria-hidden="true">
-                            <div class="modal-dialog">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="contactModalLabel{{ match.person.id }}">Contact Information</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div class="contact-info">
-                                            <p><strong><i class="fas fa-user me-2"></i>Contact Name:</strong><br>
-                                            {{ match.person.contact_name }}</p>
-                                            <p><strong><i class="fas fa-phone me-2"></i>Phone:</strong><br>
-                                            {{ match.person.contact_phone }}</p>
-                                            <p><strong><i class="fas fa-envelope me-2"></i>Email:</strong><br>
-                                            {{ match.person.contact_email }}</p>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                        <form action="{{ url_for('contact_found_person', id=match.person.id) }}" method="POST">
-                                            <button type="submit" class="btn btn-primary">
-                                                <i class="fas fa-paper-plane me-2"></i>Send Notification
-                                            </button>
-                                        </form>
-                                    </div>
-                                </div>
+                    <div class="accuracy-section">
+                        <div class="accuracy-header">
+                            <h4><i class="fas fa-chart-line"></i> Match Accuracy</h4>
+                            <div class="accuracy-score">
+                                <i class="fas fa-percentage"></i>
+                                {{ "%.1f"|format(match.confidence) }}%
                             </div>
                         </div>
-                        {% endfor %}
-                        
-                        <div class="text-center mt-5">
-                            <a href="{{ url_for('match_person') }}" class="btn btn-primary me-2">
-                                <i class="fas fa-camera me-2"></i>Try Another Photo
-                            </a>
-                            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-home me-2"></i>Return to Dashboard
-                            </a>
+                        <div class="progress">
+                            <div class="progress-bar {% if match.confidence >= 90 %}high{% elif match.confidence >= 70 %}medium{% else %}low{% endif %} progress-bar-width-{{ (match.confidence / 10)|round|int }}0"
+                                 role="progressbar" 
+                                 aria-valuenow="{{ match.confidence }}"
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                            </div>
                         </div>
-                    {% else %}
-                        <div class="alert alert-warning text-center border-0 shadow-sm">
-                            <h4 class="mb-2"><i class="fas fa-exclamation-circle me-2"></i>No Match Found</h4>
-                            <p class="mb-0">We couldn't find any matches in our database. Please try again with a different photo or check back later.</p>
+                    </div>
+
+                    <div class="contact-section">
+                        <h4><i class="fas fa-address-book"></i> Contact Information</h4>
+                        <div class="contact-grid">
+                            <div class="contact-item">
+                                <i class="fas fa-user"></i>
+                                <span>{{ match.person.contact_name }}</span>
+                            </div>
+                            <div class="contact-item">
+                                <i class="fas fa-phone"></i>
+                                <span>{{ match.person.contact_phone }}</span>
+                            </div>
+                            <div class="contact-item">
+                                <i class="fas fa-envelope"></i>
+                                <span>{{ match.person.contact_email }}</span>
+                            </div>
                         </div>
-                        
-                        <div class="text-center mt-4">
-                            <a href="{{ url_for('match_person') }}" class="btn btn-primary me-2">
-                                <i class="fas fa-camera me-2"></i>Try Again
-                            </a>
-                            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-home me-2"></i>Return Home
-                            </a>
-                        </div>
-                    {% endif %}
+                    </div>
+
+                    <div class="action-buttons">
+                        <a href="{{ url_for('missing_person_detail', id=match.person.id) }}" class="btn btn-primary">
+                            <i class="fas fa-info-circle"></i>
+                            View Details
+                        </a>
+                        {% if not auto_found %}
+                            <form action="{{ url_for('mark_person_found', id=match.person.id) }}" method="POST" style="display: inline;">
+                                <button type="submit" class="btn btn-success" onclick="return confirm('Are you sure you want to mark this person as found?')">
+                                    <i class="fas fa-check-circle"></i>
+                                    Mark as Found
+                                </button>
+                            </form>
+                        {% endif %}
+                        <a href="tel:{{ match.person.contact_phone }}" class="btn btn-info">
+                            <i class="fas fa-phone"></i>
+                            Call Contact
+                        </a>
+                    </div>
                 </div>
             </div>
+        {% endfor %}
+
+        <div class="action-buttons center">
+            <a href="{{ url_for('match_person') }}" class="btn btn-primary">
+                <i class="fas fa-camera"></i>
+                Try Another Photo
+            </a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-home"></i>
+                Return to Dashboard
+            </a>
         </div>
-    </div>
+    {% else %}
+        <div class="no-matches">
+            <i class="fas fa-search"></i>
+            <h3>No Match Found</h3>
+            <p>We couldn't find any matches in our database. Please try again with a different photo or check back later.</p>
+            <div class="action-buttons center">
+                <a href="{{ url_for('match_person') }}" class="btn btn-primary">
+                    <i class="fas fa-camera"></i>
+                    Try Again
+                </a>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-home"></i>
+                    Return Home
+                </a>
+            </div>
+        </div>
+    {% endif %}
 </div>
 {% endblock %} 

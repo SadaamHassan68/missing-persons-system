@@ -234,7 +234,7 @@
 <body>
     <nav class="navbar navbar-expand-lg">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
                 <i class="fas fa-search-location"></i>
                 <span>Missing Persons System</span>
             </a>
@@ -291,7 +291,7 @@
                 <div class="sidebar">
                     <ul class="sidebar-menu">
                         <li>
-                            <a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}">
+                            <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">
                                 <i class="fas fa-home"></i>Dashboard
                             </a>
                         </li>

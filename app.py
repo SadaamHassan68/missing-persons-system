@@ -129,7 +129,7 @@ def admin_required(f):
         user = User.query.get(session['user_id'])
         if not user or user.role != 'admin':
             flash('You do not have permission to access this page.', 'danger')
-            return redirect(url_for('index'))
+            return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -137,14 +137,14 @@ def admin_required(f):
 @app.route('/')
 def landing():
     if 'user_id' in session:
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard'))
     return render_template('landing.html')
 
 # Update the login route
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if 'user_id' in session:
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard'))
         
     if request.method == 'POST':
         email = request.form.get('email')
@@ -158,7 +158,7 @@ def login():
             user.last_login = datetime.utcnow()
             db.session.commit()
             flash('Welcome back! You have been logged in successfully.', 'success')
-            return redirect(url_for('index'))
+            return redirect(url_for('dashboard'))
         else:
             flash('Invalid email or password. Please try again.', 'danger')
     
@@ -168,7 +168,7 @@ def login():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if 'user_id' in session:
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard'))
         
     if request.method == 'POST':
         email = request.form.get('email')
@@ -212,7 +212,7 @@ def logout():
 # Update the index route to require login
 @app.route('/dashboard')
 @login_required
-def index():
+def dashboard():
     # Get filter parameters
     age_range = request.args.get('age', '')
     gender = request.args.get('gender', '')
@@ -324,7 +324,7 @@ def register_person():
             
             db.session.commit()
             flash('Missing person registered successfully!', 'success')
-            return redirect(url_for('index'))
+            return redirect(url_for('dashboard'))
             
         except Exception as e:
             db.session.rollback()
